@@ -1,0 +1,22 @@
+server:
+  # listen address
+  address: 127.0.0.1:8080
+  # the maximum duration for reading the entire request
+  readTimeout: 60s
+  # the maximum duration before timing out writes of the response
+  writeTimeout: 60s
+  # the maximum amount of time to wait for the next request when keep-alives are enabled
+  idleTimeout: 300s
+  # value of 'maxMemory' param that is given to http.Request's ParseMultipartForm
+  multipartMax: 52428800
+
+db:
+  driver: SQLite
+  database: maxwell.db
+  params: xxxxx
+
+log:
+  output: /etc/maxwell/access.log
+  level: INFO
+  format: TEXT
+  source: false
