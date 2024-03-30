@@ -10,13 +10,50 @@ server:
   # value of 'maxMemory' param that is given to http.Request's ParseMultipartForm
   multipartMax: 52428800
 
-db:
-  driver: SQLite
-  database: maxwell.db
-  params: xxxxx
-
 log:
+  # log output file
   output: /etc/maxwell/access.log
+  # log level
   level: INFO
+  # log format, TEXT, JSON is available
   format: TEXT
+  # log record with source file info
   source: false
+
+db:
+  # db address
+  address: 127.0.0.1:8080
+  # db username
+  user: root
+  # db password
+  password: 12345678
+  # db database name
+  database: maxwell
+  # connection params
+  params:
+
+redis:
+  # redis address
+  address: 127.0.0.1:6379
+  # redis requiredpass
+  password: 123456
+  # max read timeout
+  readTimeout: 60s
+  # max write timeout
+  writeTimeout: 60s
+
+jwt:
+  # jwt issuer
+  issuer: maxwell
+  # access token
+  access:
+    expire: 4h
+    key: maxwell-token-access
+  # refresh-token
+  refresh:
+    expire: 3d
+    key: maxwell-token-refresh
+  delay: 15m
+
+
+
