@@ -34,3 +34,16 @@ build:
 	# resume host environment $(host_os)/$(host_arch)
 	go env -w GOOS=$(host_os)
 	go env -w GOARCH=$(host_arch)
+
+# ent schema path
+schema_path := ./app/data/ent/schema
+schema =
+
+.PHONY: ent
+ent:
+ifneq ($(schema),)
+	# generate new $(schema) schema
+	ent new --target $(schema_path) $(schema)
+endif
+	# generate ent code
+	ent generate $(schema_path)
