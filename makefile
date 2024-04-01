@@ -36,14 +36,20 @@ build:
 	go env -w GOARCH=$(host_arch)
 
 # ent schema path
-schema_path := ./app/data/ent/schema
 schema =
+ent_out := ./app/data/ent
+ent_target := schema
+ent_generated := $(shell find $(ent_out)/* ! -path "*$(ent_target)*")
 
-.PHONY: ent
-ent:
+.PHONY: ent_gen
+ent_gen:
 ifneq ($(schema),)
 	# generate new $(schema) schema
-	ent new --target $(schema_path) $(schema)
+	ent new --target $(ent_out)/$(ent_target) $(schema)
 endif
 	# generate ent code
-	ent generate $(schema_path)
+	ent generate $(ent_out)/$(ent_target)
+
+.PHONY: ent_clean
+ent_clean:
+	@rm -rf $(ent_generated)
