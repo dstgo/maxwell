@@ -6,6 +6,8 @@ import (
 	"github.com/dstgo/contrib/db"
 	"github.com/dstgo/contrib/ginx/mid"
 	"github.com/dstgo/contrib/logx"
+	// sqlite ent adapter
+	_ "github.com/dstgo/ent-sqlite"
 	"github.com/dstgo/maxwell/app/api"
 	"github.com/dstgo/maxwell/app/conf"
 	"github.com/dstgo/maxwell/app/data/ent"
@@ -37,16 +39,20 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*http.Server, error) {
 	if err := printBanner(logger.Writer()); err != nil {
 		return nil, err
 	}
+	slog.Info("server started successfully!", slog.String("buildtime", appConf.BuildTime), slog.String("version", appConf.Version))
 
 	// initialize sql database
 	sqldb, err := db.Open(appConf.DB)
 	if err != nil {
 		return nil, err
 	}
-
 	entClient := ent.NewClient(
 		ent.Driver(entsql.OpenDB(appConf.DB.Driver, sqldb)),
 	)
+	// migrate database
+	if err := entClient.Schema.Create(ctx); err != nil {
+		return nil, err
+	}
 
 	// initialize redis client
 	redisClient := redis.NewClient(&redis.Options{
@@ -65,7 +71,7 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*http.Server, error) {
 	engine := gin.New()
 	engine.Use(
 		mid.RecoveryHandler(logger.Slog()),
-		mid.AccessLogHandler(logger.Slog(), "access record"),
+		mid.AccessLogHandler(logger.Slog(), "accesslog"),
 	)
 	engine.NoRoute(mid.ResourceNotFoundHandler())
 	engine.NoMethod(mid.MethodAllowHandler())
@@ -87,6 +93,7 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*http.Server, error) {
 
 	// cleanup will be called when server shutdown
 	server.RegisterOnShutdown(func() {
+		entClient.Close()
 		logger.Close()
 	})
 
