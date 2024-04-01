@@ -30,7 +30,15 @@ db:
   # db database name
   database: maxwell
   # connection params
-  params:
+  params: charset=utf8mb4&parseTime=True&loc=Local
+  # max idle connections limit
+  maxIdleConnections: 10
+  # max opening connections limit
+  maxOpenConnections: 100
+  # max connection lifetime
+  maxLifeTime: 1h
+  # max connection idle time
+  maxIdleTime: 10m
 
 redis:
   # redis address

@@ -1,7 +1,7 @@
 package conf
 
 import (
-	"github.com/dstgo/contrib/gorms"
+	"github.com/dstgo/contrib/db"
 	"github.com/dstgo/contrib/logx"
 	"time"
 )
@@ -9,7 +9,7 @@ import (
 type AppConf struct {
 	Server ServerConf   `mapstructure:"server"`
 	Log    logx.Options `mapstructure:"log"`
-	DB     gorms.Config `mapstructure:"db"`
+	DB     db.Option    `mapstructure:"db"`
 	Redis  RedisConf    `mapstructure:"redis"`
 
 	Version   string
