@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dstgo/contrib/util/cfgx"
 	"github.com/dstgo/maxwell/app"
-	"github.com/dstgo/maxwell/app/conf"
+	"github.com/dstgo/maxwell/conf"
+	"github.com/dstgo/maxwell/contribs/utils/cfgx"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"os/signal"
@@ -42,6 +42,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		defer server.Shutdown(ctx)
 
 		done := make(chan struct{})
 		go func() {
@@ -57,7 +58,6 @@ var rootCmd = &cobra.Command{
 		case <-done:
 			slog.InfoContext(ctx, "shutdown")
 		}
-		server.Shutdown(ctx)
 		return nil
 	},
 }

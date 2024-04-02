@@ -3,15 +3,16 @@ package app
 import (
 	"context"
 	entsql "entgo.io/ent/dialect/sql"
-	"github.com/dstgo/contrib/db"
-	"github.com/dstgo/contrib/ginx/mid"
-	"github.com/dstgo/contrib/logx"
+	"github.com/dstgo/ent-sqlite/testdata/ent"
+	"github.com/dstgo/maxwell/app/api"
+	"github.com/dstgo/maxwell/app/types"
+	"github.com/dstgo/maxwell/conf"
+	"github.com/dstgo/maxwell/contribs/db"
+	"github.com/dstgo/maxwell/contribs/ginx/mid"
+	"github.com/dstgo/maxwell/contribs/logx"
+
 	// sqlite ent adapter
 	_ "github.com/dstgo/ent-sqlite"
-	"github.com/dstgo/maxwell/app/api"
-	"github.com/dstgo/maxwell/app/conf"
-	"github.com/dstgo/maxwell/app/data/ent"
-	"github.com/dstgo/maxwell/app/types"
 	"github.com/dstgo/maxwell/assets"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
