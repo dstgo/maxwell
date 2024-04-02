@@ -1,8 +1,8 @@
 package conf
 
 import (
-	"github.com/dstgo/contrib/db"
-	"github.com/dstgo/contrib/logx"
+	"github.com/dstgo/maxwell/contribs/db"
+	"github.com/dstgo/maxwell/contribs/logx"
 	"time"
 )
 
