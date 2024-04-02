@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"github.com/dstgo/maxwell/contribs/ginx/pkg/ratelimit/counter"
 	"github.com/dstgo/maxwell/contribs/ginx/resp"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -30,11 +31,16 @@ func WithHandler(handler gin.HandlerFunc) Option {
 	}
 }
 
-// NewLimiter returns a new limiter handler with options
-func NewLimiter(opts ...Option) gin.HandlerFunc {
+// RateLimit returns a new limiter handler with options
+func RateLimit(opts ...Option) gin.HandlerFunc {
 	opt := new(Options)
 	for _, option := range opts {
 		option(opt)
+	}
+
+	// default counter limiter
+	if opt.Limiter == nil {
+		opt.Limiter = counter.Limiter()
 	}
 
 	return func(ctx *gin.Context) {
