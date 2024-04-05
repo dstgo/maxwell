@@ -4,8 +4,9 @@ import (
 	"context"
 	"github.com/dstgo/maxwell/app/data/cache"
 	"github.com/dstgo/maxwell/conf"
-	"github.com/dstgo/maxwell/contribs/ginx/resp/errs"
-	"github.com/dstgo/maxwell/contribs/utils/jwtx"
+	"github.com/ginx-contribs/ginx/pkg/resp/errs"
+	"github.com/ginx-contribs/jwtx"
+	"github.com/ginx-contribs/str2bytes"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -122,17 +123,17 @@ func (t *TokenHandler) Refresh(ctx context.Context, accessToken string, refreshT
 	// get rest ttl
 	ttl, err := t.accessCache.TTL(ctx, access.Claims.ID)
 	if err != nil && !errors.Is(err, redis.Nil) {
-		return pair, errs.Internal(err)
+		return pair, errs.InternalError(err)
 	}
 	// extend lifetime of access token
 	ttl += t.jwtConf.Access.Expire
 	if err := t.accessCache.Set(ctx, newAccess.Claims.ID, newAccess.Claims.ID, ttl); err != nil {
-		return pair, errs.Internal(err)
+		return pair, errs.InternalError(err)
 	}
 
 	// update association
 	if err := t.refreshCache.Set(ctx, refresh.Claims.ID, newAccess.Claims.ID, -1); err != nil {
-		return pair, errs.Internal(err)
+		return pair, errs.InternalError(err)
 	}
 
 	return pair, nil
@@ -159,7 +160,7 @@ func (t *TokenHandler) newToken(now time.Time, key string, payload TokenPayload)
 	}
 
 	// issue the token
-	token, err := jwtx.NewJwt(key, t.method, claims)
+	token, err := jwtx.IssueWithClaims(str2bytes.Str2Bytes(key), t.method, claims)
 	if err != nil {
 		return Token{}, err
 	}
@@ -167,17 +168,17 @@ func (t *TokenHandler) newToken(now time.Time, key string, payload TokenPayload)
 	return Token{
 		Token:       token.Token,
 		Claims:      claims,
-		TokenString: token.SignedJwt,
+		TokenString: token.SignedString,
 	}, err
 }
 
 func (t *TokenHandler) parse(token, secret string) (Token, error) {
-	parseJwt, err := jwtx.ParseJwt(token, secret, t.method, &TokenClaims{})
+	parseJwt, err := jwtx.VerifyWithClaims(token, str2bytes.Str2Bytes(secret), t.method, &TokenClaims{})
 	if err == nil || errors.Is(err, jwt.ErrTokenExpired) {
 		return Token{
 			Token:       parseJwt.Token,
 			Claims:      *parseJwt.Claims.(*TokenClaims),
-			TokenString: parseJwt.SignedJwt,
+			TokenString: parseJwt.SignedString,
 		}, nil
 	} else {
 		return Token{}, err
@@ -193,7 +194,7 @@ func (t *TokenHandler) verify(ctx context.Context, key, token string) (Token, er
 	if _, err := t.accessCache.Get(ctx, parsedToken.Claims.ID); errors.Is(err, redis.Nil) {
 		return parsedToken, jwt.ErrTokenExpired
 	} else if err != nil {
-		return parsedToken, errs.Internal(err)
+		return parsedToken, errs.InternalError(err)
 	}
 	return parsedToken, nil
 }
