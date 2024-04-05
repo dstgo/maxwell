@@ -1,16 +1,16 @@
 package conf
 
 import (
-	"github.com/dstgo/maxwell/contribs/db"
-	"github.com/dstgo/maxwell/contribs/logx"
+	"github.com/ginx-contribs/dbx"
+	"log/slog"
 	"time"
 )
 
 type AppConf struct {
-	Server ServerConf   `mapstructure:"server"`
-	Log    logx.Options `mapstructure:"log"`
-	DB     db.Option    `mapstructure:"db"`
-	Redis  RedisConf    `mapstructure:"redis"`
+	Server ServerConf  `mapstructure:"server"`
+	Log    LogConf     `mapstructure:"log"`
+	DB     dbx.Options `mapstructure:"db"`
+	Redis  RedisConf   `mapstructure:"redis"`
 
 	Version   string
 	BuildTime string
@@ -22,6 +22,15 @@ type ServerConf struct {
 	WriteTimeout time.Duration `mapstructure:"writeTimeout"`
 	IdleTimeout  time.Duration `mapstructure:"idleTimeout"`
 	MultipartMax int64         `mapstructure:"multipartMax"`
+}
+
+type LogConf struct {
+	Filename string     `mapstructure:"filename"`
+	Prompt   string     `mapstructure:"-"`
+	Level    slog.Level `mapstructure:"level"`
+	Format   string     `mapstructure:"format"`
+	Source   bool       `mapstructure:"source"`
+	Color    bool       `mapstructure:"color"`
 }
 
 type RedisConf struct {
@@ -42,4 +51,14 @@ type JwtConf struct {
 		Expire time.Duration `mapstructure:"expire"`
 		Key    string        `mapstructure:"key"`
 	} `mapstructure:"refresh"`
+}
+
+type RateLimit struct {
+	IpLimit struct {
+		Limit  int           `mapstructure:"limit"`
+		Window time.Duration `mapstructure:"window"`
+	} `mapstructure:"ipLimit"`
+
+	Token struct {
+	}
 }

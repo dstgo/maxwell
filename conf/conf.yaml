@@ -10,15 +10,31 @@ server:
   # value of 'maxMemory' param that is given to http.Request's ParseMultipartForm
   multipartMax: 52428800
 
+# http rate limit
+limit:
+  # count rate 10/3min
+  count:
+    limit: 10
+    window: 3m
+  bucket:
+    capacity: 10000
+
+
 log:
   # log output file
-  output: /etc/maxwell/access.log
+  filename: /etc/maxwell/access.log
   # log level
-  level: INFO
+  # LevelDebug Level = -4
+  # LevelInfo  Level = 0
+  # LevelWarn  Level = 4
+  # LevelError Level = 8
+  level: 0
   # log format, TEXT, JSON is available
   format: TEXT
   # log record with source file info
   source: false
+  # show color in console output
+  color: false
 
 db:
   # db address
@@ -30,7 +46,7 @@ db:
   # db database name
   database: maxwell
   # connection params
-  params: charset=utf8mb4&parseTime=True&loc=Local
+  param: charset=utf8mb4&parseTime=True&loc=Local
   # max idle connections limit
   maxIdleConnections: 10
   # max opening connections limit
