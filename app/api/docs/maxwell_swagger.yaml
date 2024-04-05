@@ -1,0 +1,175 @@
+basePath: /api/
+definitions:
+  auth.LoginResult:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  auth.RefreshResult:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  auth.RefreshTokenOption:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  auth.RegisterOption:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  auth.ResetPasswordOption:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      newPassword:
+        type: string
+      password:
+        type: string
+    type: object
+  types.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+info:
+  contact:
+    name: dstgo
+    url: https://github.com/dstgo/maxwell
+  description: This is maxwell swagger generated api documentation, know more information
+    about maxwell on GitHub.
+  license:
+    name: MIT LICENSE
+    url: https://mit-license.org/
+  title: MaxWell HTTP API
+  version: v0.0.0Beta
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: use login
+      parameters:
+      - description: user password
+        in: query
+        name: password
+        type: string
+      - description: remember user or not
+        in: query
+        name: remember
+        type: boolean
+      - description: username or email
+        in: query
+        name: username
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.LoginResult'
+              type: object
+      summary: Login
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: refresh access token lifetime
+      parameters:
+      - description: refresh params
+        in: body
+        name: RefreshTokenOption
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshTokenOption'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.RefreshResult'
+              type: object
+      summary: Refresh
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: register a new user
+      parameters:
+      - description: register params
+        in: body
+        name: RegisterOption
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterOption'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: Register
+      tags:
+      - auth
+  /auth/reset:
+    post:
+      consumes:
+      - application/json
+      description: reset user password without login
+      parameters:
+      - description: reset params
+        in: body
+        name: ResetPasswordOption
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ResetPasswordOption'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: ResetPassword
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
