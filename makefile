@@ -53,3 +53,9 @@ endif
 .PHONY: ent_clean
 ent_clean:
 	@rm -rf $(ent_generated)
+
+api_path := ./app/api
+
+.PHONY: swag
+swag:
+	go generate $(api_path)
