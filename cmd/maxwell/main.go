@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"github.com/dstgo/maxwell/app"
 	"github.com/dstgo/maxwell/conf"
-	"github.com/dstgo/maxwell/contribs/utils/cfgx"
+	"github.com/dstgo/maxwell/pkg/cfgx"
 	"github.com/spf13/cobra"
 	"log/slog"
-	"os/signal"
-	"syscall"
+	"os"
 )
 
 var (
@@ -32,33 +31,34 @@ var rootCmd = &cobra.Command{
 		appconf.Version = Version
 		appconf.BuildTime = BuildTime
 
-		// register os signal listener
-		ctx := context.Background()
-		notifyContext, cancelFunc := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
-		defer cancelFunc()
+		// print banner
+		if err := app.PrintBanner(os.Stderr); err != nil {
+			return err
+		}
 
-		// initialize app
-		server, err := app.NewApp(notifyContext, &appconf)
+		appconf.Log.Prompt = "[maxwell]"
+		// initialize app logger
+		logger, err := app.NewLogger(appconf.Log)
 		if err != nil {
 			return err
 		}
-		defer server.Shutdown(ctx)
+		defer logger.Close()
 
-		done := make(chan struct{})
-		go func() {
-			slog.Info(fmt.Sprintf("server is listening at %s", appconf.Server.Address))
-			server.ListenAndServe()
-			done <- struct{}{}
-			close(done)
-		}()
+		// set it to the default logger
+		slog.SetDefault(logger.Slog())
+		slog.Info(fmt.Sprintf("logging in %s Level", appconf.Log.Level))
 
-		select {
-		case <-notifyContext.Done():
-			slog.InfoContext(ctx, "received os signal, ready to shutdown")
-		case <-done:
-			slog.InfoContext(ctx, "shutdown")
+		// this is the root context for the whole program
+		rootCtx := context.Background()
+
+		// initialize app
+		server, err := app.NewApp(rootCtx, &appconf)
+		if err != nil {
+			return err
 		}
-		return nil
+
+		// run the server
+		return server.Spin()
 	},
 }
 
