@@ -41,7 +41,7 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/ginx-contribs/dbx v1.0.1 // indirect
 	github.com/ginx-contribs/ent-sqlite v1.1.0 // indirect
-	github.com/ginx-contribs/ginx v1.1.0 // indirect
+	github.com/ginx-contribs/ginx v1.2.0 // indirect
 	github.com/ginx-contribs/jwtx v1.0.0 // indirect
 	github.com/ginx-contribs/logx v1.1.1 // indirect
 	github.com/ginx-contribs/str2bytes v1.0.0 // indirect

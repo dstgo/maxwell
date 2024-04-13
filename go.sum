@@ -82,6 +82,10 @@ github.com/ginx-contribs/ent-sqlite v1.1.0 h1:26MZL9lzLyVP6A76YOpekiOTTB84W3WTJA
 github.com/ginx-contribs/ent-sqlite v1.1.0/go.mod h1:drFxdvIT6Ym2euF8HFybmFIeUKbLFzHIRXMFv0ic+eM=
 github.com/ginx-contribs/ginx v1.1.0 h1:hnTi+MLrOMVEAFz3DbK3CZqDynY0+iq9LG1x1DN0NV0=
 github.com/ginx-contribs/ginx v1.1.0/go.mod h1:HfGfElpMcbmb5k/g/7s31A26+A+zm8BUEsbK7+f/1mw=
+github.com/ginx-contribs/ginx v1.1.1 h1:cFZvztwRjCbPeXxfSBp1kJWsbJSsUpXqnHEyHDAalUo=
+github.com/ginx-contribs/ginx v1.1.1/go.mod h1:CjEeKEtiVbMto3SZBfOif1YhsDlLYNsMKR6voDGd+sQ=
+github.com/ginx-contribs/ginx v1.2.0 h1:Po0ZDiDTSj5cn4xkIvlH0KIplLlJjC8+luMaaouxrE8=
+github.com/ginx-contribs/ginx v1.2.0/go.mod h1:CjEeKEtiVbMto3SZBfOif1YhsDlLYNsMKR6voDGd+sQ=
 github.com/ginx-contribs/jwtx v1.0.0 h1:P0WWfjLFluBboZraCy7te3RMMPt4cVF8A5cLVlBhiKc=
 github.com/ginx-contribs/jwtx v1.0.0/go.mod h1:bHo1bGMz7624rIS1s1V9edKUjhX1z/+4I9+brsW0RgA=
 github.com/ginx-contribs/logx v1.0.0 h1:eWBUwvXpqZEN03jWQc6wJJyvUZoJA9Ltk4tkvWoDugc=
