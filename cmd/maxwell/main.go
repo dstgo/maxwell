@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dstgo/maxwell/app"
-	"github.com/dstgo/maxwell/conf"
+	"github.com/dstgo/maxwell/internal/app"
+	"github.com/dstgo/maxwell/internal/app/conf"
 	"github.com/dstgo/maxwell/pkg/cfgx"
 	"github.com/spf13/cobra"
 	"log/slog"
@@ -46,7 +46,7 @@ var rootCmd = &cobra.Command{
 
 		// set it to the default logger
 		slog.SetDefault(logger.Slog())
-		slog.Info(fmt.Sprintf("logging in %s Level", appconf.Log.Level))
+		slog.Info(fmt.Sprintf("logging in level: %s", appconf.Log.Level))
 
 		// this is the root context for the whole program
 		rootCtx := context.Background()
