@@ -9,6 +9,8 @@ server:
   idleTimeout: 300s
   # value of 'maxMemory' param that is given to http.Request's ParseMultipartForm
   multipartMax: 52428800
+  # enabled pprof program profiling
+  pprof: false
 
 # http rate limit
 limit:
@@ -37,6 +39,8 @@ log:
   color: false
 
 db:
+  # sqlite | mysql | postgresql
+  driver: mysql
   # db address
   address: 127.0.0.1:8080
   # db username
@@ -78,6 +82,34 @@ jwt:
     expire: 3d
     key: maxwell-token-refresh
   delay: 15m
+
+# email configuration
+email:
+  # smtp host server
+  host: smtp.example.com
+  # smtp port
+  port: 25
+  # username
+  username: admin
+  # password to authenticate
+  password: 1234556
+  # message queue configuration
+  mq:
+    # publish topic
+    topic: email
+    # max length of topic
+    maxLen: 10_0000
+    # max batch size of per reading
+    batchSize: 20
+    # consumer group
+    group: email_group
+    # how many consumer in groups, must >=1.
+    consumers:
+      - consumerA
+      - consumerB
+  code:
+    ttl: 5min
+
 
 
 

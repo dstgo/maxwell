@@ -7,13 +7,16 @@ import (
 )
 
 type AppConf struct {
-	Server ServerConf  `mapstructure:"server"`
-	Log    LogConf     `mapstructure:"log"`
-	DB     dbx.Options `mapstructure:"db"`
-	Redis  RedisConf   `mapstructure:"redis"`
+	Server ServerConf    `mapstructure:"server"`
+	Log    LogConf       `mapstructure:"log"`
+	DB     dbx.Options   `mapstructure:"db"`
+	Redis  RedisConf     `mapstructure:"redis"`
+	Email  EmailConf     `mapstructure:"email"`
+	Jwt    JwtConf       `mapstructure:"jwt"`
+	Limit  RateLimitConf `mapstructure:"limit"`
 
-	Version   string
-	BuildTime string
+	Version   string `mapstructure:"-"`
+	BuildTime string `mapstructure:"-"`
 }
 
 type ServerConf struct {
@@ -22,6 +25,7 @@ type ServerConf struct {
 	WriteTimeout time.Duration `mapstructure:"writeTimeout"`
 	IdleTimeout  time.Duration `mapstructure:"idleTimeout"`
 	MultipartMax int64         `mapstructure:"multipartMax"`
+	Pprof        bool          `mapstructure:"pprof"`
 }
 
 type LogConf struct {
@@ -53,12 +57,26 @@ type JwtConf struct {
 	} `mapstructure:"refresh"`
 }
 
-type RateLimit struct {
+type RateLimitConf struct {
 	IpLimit struct {
 		Limit  int           `mapstructure:"limit"`
 		Window time.Duration `mapstructure:"window"`
 	} `mapstructure:"ipLimit"`
+}
 
-	Token struct {
-	}
+type EmailConf struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	MQ       struct {
+		Topic     string   `mapstructure:"topic"`
+		MaxLen    int64    `mapstructure:"maxLen"`
+		BatchSize int64    `mapstructure:"batchSize"`
+		Group     string   `mapstructure:"group"`
+		Consumers []string `mapstructure:"consumers"`
+	} `mapstructure:"mq"`
+	Code struct {
+		TTL time.Duration `mapstructure:"ttl"`
+	} `mapstructure:"code"`
 }
