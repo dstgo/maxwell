@@ -26,3 +26,5 @@ bin/
 # ide workspace dir
 .idea
 .vscode
+
+testdata/
