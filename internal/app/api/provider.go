@@ -1,6 +1,20 @@
 package api
 
-import "github.com/dstgo/maxwell/app/types"
+import (
+	"github.com/dstgo/maxwell/internal/app/api/auth"
+	"github.com/google/wire"
+)
+
+type Router struct {
+	Auth auth.Router
+}
+
+var Provider = wire.NewSet(
+	// auth router
+	auth.NewAuthAPI,
+	auth.NewRouter,
+	wire.Struct(new(Router), "*"),
+)
 
 // RegisterRouter
 // @title	                        MaxWell HTTP API
@@ -16,6 +30,3 @@ import "github.com/dstgo/maxwell/app/types"
 // @name                            Authorization
 //
 //go:generate swag init --ot yaml --generatedTime --instanceName "maxwell" -g api.go -d ./,../types --output ./docs && swag fmt -g api.go -d ./
-func RegisterRouter(env *types.Env) {
-
-}

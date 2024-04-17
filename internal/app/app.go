@@ -3,20 +3,23 @@ package app
 import (
 	"context"
 	entsql "entgo.io/ent/dialect/sql"
-	"github.com/dstgo/ent-sqlite/testdata/ent"
-	"github.com/dstgo/maxwell/app/api"
-	"github.com/dstgo/maxwell/app/types"
-	"github.com/dstgo/maxwell/conf"
+	"fmt"
+	"github.com/dstgo/maxwell/ent"
+	"github.com/dstgo/maxwell/internal/app/conf"
+	"github.com/dstgo/maxwell/internal/app/pkg/logh"
+	"github.com/dstgo/maxwell/internal/app/types"
 	"github.com/dstgo/size"
 	"github.com/ginx-contribs/dbx"
 	"github.com/ginx-contribs/ginx"
 	"github.com/ginx-contribs/ginx/constant/methods"
 	"github.com/ginx-contribs/ginx/middleware"
 	"github.com/ginx-contribs/logx"
+	"github.com/google/wire"
+	"github.com/wneessen/go-mail"
 	"log/slog"
+	"net/http/pprof"
 	"time"
 
-	// sqlite ent adapter
 	"github.com/dstgo/maxwell/assets"
 	"github.com/gin-gonic/gin"
 	_ "github.com/ginx-contribs/ent-sqlite"
@@ -24,21 +27,38 @@ import (
 	"io"
 )
 
+// EnvProvider only use for wire injection
+var EnvProvider = wire.NewSet(
+	wire.FieldsOf(new(*types.Env), "AppConf"),
+	wire.FieldsOf(new(*types.Env), "Ent"),
+	wire.FieldsOf(new(*types.Env), "Redis"),
+	wire.FieldsOf(new(*types.Env), "Router"),
+	wire.FieldsOf(new(*types.Env), "Email"),
+	wire.FieldsOf(new(*conf.AppConf), "Jwt"),
+	wire.FieldsOf(new(*conf.AppConf), "Email"),
+)
+
 // NewApp returns a new app server, cleanup func
 func NewApp(ctx context.Context, appConf *conf.AppConf) (*ginx.Server, error) {
 
-	prefix := "[maxwell]"
+	slog.Debug("maxwell server is initializing")
 
 	// initialize database
-	slog.Debug("connecting to database", slog.String("address", appConf.DB.Address))
+	slog.Debug(fmt.Sprintf("connecting to database(%s)", appConf.DB.Address))
 	db, err := initializeDB(ctx, appConf.DB)
 	if err != nil {
 		return nil, err
 	}
 
 	// initialize redis client
-	slog.Debug("connecting to redis", slog.String("address", appConf.Redis.Address))
+	slog.Debug(fmt.Sprintf("connecting to redis(%s)", appConf.Redis.Address))
 	redisClient, err := initializeRedis(ctx, appConf.Redis)
+	if err != nil {
+		return nil, err
+	}
+
+	// initialize email client
+	emailClient, err := initializeEmail(ctx, appConf.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +67,6 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*ginx.Server, error) {
 	server := ginx.New(
 		ginx.WithOptions(ginx.Options{
 			Mode:               gin.ReleaseMode,
-			LogPrefix:          prefix,
 			ReadTimeout:        appConf.Server.ReadTimeout,
 			WriteTimeout:       appConf.Server.WriteTimeout,
 			IdleTimeout:        appConf.Server.IdleTimeout,
@@ -59,26 +78,38 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*ginx.Server, error) {
 		ginx.WithNoRoute(middleware.NoRoute()),
 		ginx.WithMiddlewares(
 			middleware.Recovery(slog.Default(), nil),
-			middleware.Logger(slog.Default(), prefix),
+			middleware.Logger(slog.Default(), "access record"),
 		),
 	)
 
+	// whether to enable pprof program profiling
+	if appConf.Server.Pprof {
+		server.Engine().GET("/pprof/profile", gin.WrapF(pprof.Profile))
+		server.Engine().GET("/pprof/heap", gin.WrapH(pprof.Handler("heap")))
+		server.Engine().GET("/pprof/goroutine", gin.WrapH(pprof.Handler("goroutine")))
+		slog.Info("pprof profiling enabled")
+	}
+
 	// register shutdown hook
 	onShutdown := func(ctx context.Context) error {
-		errorLogIf("db closed failed", db.Close())
-		errorLogIf("redis closed failed", redisClient.Close())
+		logh.ErrorNotNil("db closed failed", db.Close())
+		logh.ErrorNotNil("redis closed failed", redisClient.Close())
 		return nil
 	}
 	server.OnShutdown = append(server.OnShutdown, onShutdown)
 
-	slog.Debug("initialize api router")
+	slog.Debug("setup api router")
 	// initialize api router
-	api.RegisterRouter(&types.Env{
+	_, err = setup(&types.Env{
 		AppConf: appConf,
 		Ent:     db,
 		Redis:   redisClient,
 		Router:  server.RouterGroup(),
+		Email:   emailClient,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return server, nil
 }
@@ -134,7 +165,7 @@ func initializeDB(ctx context.Context, options dbx.Options) (*ent.Client, error)
 		return nil, err
 	}
 
-	return nil, err
+	return entClient, err
 }
 
 func initializeRedis(ctx context.Context, redisConf conf.RedisConf) (*redis.Client, error) {
@@ -152,9 +183,15 @@ func initializeRedis(ctx context.Context, redisConf conf.RedisConf) (*redis.Clie
 	return redisClient, nil
 }
 
-func errorLogIf(msg string, err error) {
+func initializeEmail(ctx context.Context, emailConf conf.EmailConf) (*mail.Client, error) {
+	client, err := mail.NewClient(emailConf.Host,
+		mail.WithPort(emailConf.Port),
+		mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		mail.WithUsername(emailConf.Username),
+		mail.WithPassword(emailConf.Password),
+	)
 	if err != nil {
-		return
+		return nil, err
 	}
-	slog.Error(msg, slog.Any("error", err))
+	return client, nil
 }
