@@ -26,7 +26,7 @@ build:
 	go env -w GOARCH=$(arch)
 
 	# build go module
-	go build -a -trimpath \
+	go build -trimpath \
 		-ldflags="-X main.AppName=$(app) -X main.Version=$(git_version) -X main.BuildTime=$(build_time)" \
 		-o $(output)/$(app)$(exe) \
 		$(module)
@@ -37,7 +37,7 @@ build:
 
 # ent schema path
 schema =
-ent_out := ./app/data/ent
+ent_out := ./ent
 ent_target := schema
 ent_generated := $(shell find $(ent_out)/* ! -path "*$(ent_target)*")
 
@@ -54,8 +54,16 @@ endif
 ent_clean:
 	@rm -rf $(ent_generated)
 
-api_path := ./app/api
+api_path := ./internal/app/api
 
 .PHONY: swag
 swag:
 	go generate $(api_path)
+
+
+wire_out := ./internal/app/
+
+.PHONY: wire
+wire:
+	# generate app dependencies injection file
+	wire gen $(wire_out)
