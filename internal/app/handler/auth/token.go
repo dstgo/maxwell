@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"github.com/dstgo/maxwell/app/data/cache"
-	"github.com/dstgo/maxwell/conf"
-	"github.com/ginx-contribs/ginx/pkg/resp/errs"
+	"github.com/dstgo/maxwell/internal/app/conf"
+	"github.com/dstgo/maxwell/internal/app/data/cache"
+	"github.com/ginx-contribs/ginx/pkg/resp/statuserr"
 	"github.com/ginx-contribs/jwtx"
 	"github.com/ginx-contribs/str2bytes"
 	"github.com/golang-jwt/jwt/v5"
@@ -36,6 +36,15 @@ type Token struct {
 type TokenPair struct {
 	AccessToken  Token
 	RefreshToken Token
+}
+
+func NewTokenHandler(jwtConf conf.JwtConf, client *redis.Client) *TokenHandler {
+	return &TokenHandler{
+		method:       jwt.SigningMethodHS256,
+		accessCache:  cache.NewRedisTokenCache("access", client),
+		refreshCache: cache.NewRedisTokenCache("refresh", client),
+		jwtConf:      jwtConf,
+	}
 }
 
 // TokenHandler is responsible for maintaining authentication tokens
@@ -123,17 +132,17 @@ func (t *TokenHandler) Refresh(ctx context.Context, accessToken string, refreshT
 	// get rest ttl
 	ttl, err := t.accessCache.TTL(ctx, access.Claims.ID)
 	if err != nil && !errors.Is(err, redis.Nil) {
-		return pair, errs.InternalError(err)
+		return pair, statuserr.InternalError(err)
 	}
 	// extend lifetime of access token
 	ttl += t.jwtConf.Access.Expire
 	if err := t.accessCache.Set(ctx, newAccess.Claims.ID, newAccess.Claims.ID, ttl); err != nil {
-		return pair, errs.InternalError(err)
+		return pair, statuserr.InternalError(err)
 	}
 
 	// update association
 	if err := t.refreshCache.Set(ctx, refresh.Claims.ID, newAccess.Claims.ID, -1); err != nil {
-		return pair, errs.InternalError(err)
+		return pair, statuserr.InternalError(err)
 	}
 
 	return pair, nil
@@ -194,7 +203,7 @@ func (t *TokenHandler) verify(ctx context.Context, key, token string) (Token, er
 	if _, err := t.accessCache.Get(ctx, parsedToken.Claims.ID); errors.Is(err, redis.Nil) {
 		return parsedToken, jwt.ErrTokenExpired
 	} else if err != nil {
-		return parsedToken, errs.InternalError(err)
+		return parsedToken, statuserr.InternalError(err)
 	}
 	return parsedToken, nil
 }

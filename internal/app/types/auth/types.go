@@ -9,11 +9,6 @@ type LoginOption struct {
 	Remember bool `json:"remember"`
 }
 
-type LoginResult struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken,omitempty"`
-}
-
 type RegisterOption struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -33,7 +28,7 @@ type RefreshTokenOption struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-type RefreshResult struct {
+type TokenResult struct {
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken,omitempty"`
 }

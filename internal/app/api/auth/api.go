@@ -1,18 +1,19 @@
 package auth
 
 import (
-	authandler "github.com/dstgo/maxwell/app/handler/auth"
-	"github.com/dstgo/maxwell/app/types/auth"
+	authandler "github.com/dstgo/maxwell/internal/app/handler/auth"
+	"github.com/dstgo/maxwell/internal/app/types/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/ginx-contribs/ginx/pkg/resp"
 )
 
-func NewAuthAPI(token *authandler.TokenHandler) *AuthAPI {
-	return &AuthAPI{token: token}
+func NewAuthAPI(token *authandler.TokenHandler, auth *authandler.AuthHandler) *AuthAPI {
+	return &AuthAPI{token: token, auth: auth}
 }
 
 type AuthAPI struct {
 	token *authandler.TokenHandler
+	auth  *authandler.AuthHandler
 }
 
 // Login
@@ -22,7 +23,7 @@ type AuthAPI struct {
 // @Accept       json
 // @Produce      json
 // @Param        loginOption  query  auth.LoginOption  true "login params"
-// @Success      200  {object}  types.Response{data=auth.LoginResult}
+// @Success      200  {object}  types.Response{data=auth.TokenResult}
 // @Router       /auth/login [POST]
 func (a *AuthAPI) Login(ctx *gin.Context) {
 	var loginOpt auth.LoginOption
@@ -30,8 +31,16 @@ func (a *AuthAPI) Login(ctx *gin.Context) {
 		resp.Fail(ctx).Error(err).JSON()
 		return
 	}
-
-	// do something
+	// login by username and password
+	tokenPair, err := a.auth.LoginByPassword(ctx, loginOpt)
+	if err != nil {
+		resp.Fail(ctx).Error(err).JSON()
+	} else {
+		resp.Ok(ctx).Data(auth.TokenResult{
+			AccessToken:  tokenPair.AccessToken.TokenString,
+			RefreshToken: tokenPair.RefreshToken.TokenString,
+		}).JSON()
+	}
 }
 
 // Register
@@ -50,7 +59,12 @@ func (a *AuthAPI) Register(ctx *gin.Context) {
 		return
 	}
 
-	// do something
+	_, err := a.auth.RegisterNewUser(ctx, registerOpt)
+	if err != nil {
+		resp.Fail(ctx).Error(err).JSON()
+	} else {
+		resp.Ok(ctx).JSON()
+	}
 }
 
 // ResetPassword
@@ -68,16 +82,22 @@ func (a *AuthAPI) ResetPassword(ctx *gin.Context) {
 		resp.Fail(ctx).Error(err).JSON()
 		return
 	}
+
+	if err := a.auth.ResetPassword(ctx, restOpt); err != nil {
+		resp.Fail(ctx).Error(err).JSON()
+	} else {
+		resp.Ok(ctx).JSON()
+	}
 }
 
 // Refresh
 // @Summary      Refresh
-// @Description  refresh access token lifetime
+// @Description  ask for refresh token lifetime
 // @Tags         auth
 // @Accept       json
 // @Produce      json
 // @Param        RefreshTokenOption  body  auth.RefreshTokenOption  true "refresh params"
-// @Success      200  {object}  types.Response{data=auth.RefreshResult}
+// @Success      200  {object}  types.Response{data=auth.TokenResult}
 // @Router       /auth/refresh [POST]
 func (a *AuthAPI) Refresh(ctx *gin.Context) {
 	var refreshOpt auth.RefreshTokenOption
@@ -85,11 +105,13 @@ func (a *AuthAPI) Refresh(ctx *gin.Context) {
 		resp.Fail(ctx).Error(err).JSON()
 		return
 	}
+
+	// ask for refresh token
 	tokenPair, err := a.token.Refresh(ctx, refreshOpt.AccessToken, refreshOpt.RefreshToken)
 	if err != nil {
 		resp.Fail(ctx).Error(err).JSON()
 	} else {
-		resp.Ok(ctx).Data(auth.RefreshResult{
+		resp.Ok(ctx).Data(auth.TokenResult{
 			AccessToken:  tokenPair.AccessToken.TokenString,
 			RefreshToken: tokenPair.RefreshToken.TokenString,
 		}).JSON()
