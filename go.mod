@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/ginx-contribs/dbx v1.0.1
 	github.com/ginx-contribs/ent-sqlite v1.1.0
-	github.com/ginx-contribs/ginx v1.2.0
+	github.com/ginx-contribs/ginx v1.2.1
 	github.com/ginx-contribs/jwtx v1.0.0
 	github.com/ginx-contribs/logx v1.1.2
 	github.com/ginx-contribs/str2bytes v1.0.0
