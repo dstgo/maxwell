@@ -29,4 +29,4 @@ var Provider = wire.NewSet(
 // @in                              header
 // @name                            Authorization
 //
-//go:generate swag init --ot yaml --generatedTime --instanceName "maxwell" -g api.go -d ./,../types --output ./docs && swag fmt -g api.go -d ./
+//go:generate swag init --ot yaml --generatedTime -g api.go -d ./,../types --output ./ && swag fmt -g api.go -d ./
