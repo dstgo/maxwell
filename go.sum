@@ -95,10 +95,14 @@ github.com/ginx-contribs/jwtx v1.0.0 h1:P0WWfjLFluBboZraCy7te3RMMPt4cVF8A5cLVlBh
 github.com/ginx-contribs/jwtx v1.0.0/go.mod h1:bHo1bGMz7624rIS1s1V9edKUjhX1z/+4I9+brsW0RgA=
 github.com/ginx-contribs/logx v1.1.1 h1:6kSqi8zj8i+m8oskznqjN9TwKpppsnA6cvS/6lO42Io=
 github.com/ginx-contribs/logx v1.1.1/go.mod h1:mUCQ9qzFPRnTeG+sOX1pdmWM6egGbsnD/98FCgvT2wk=
+github.com/ginx-contribs/logx v1.1.2 h1:Ege7yAl7OOF4DURvw0SDYzpAfzcjxnc/PxCAzFB8A7o=
+github.com/ginx-contribs/logx v1.1.2/go.mod h1:m9xdfPQPK9u3bEl8FcX47EszOGrdHtp1ofWUgJxC7gg=
 github.com/ginx-contribs/str2bytes v1.0.0 h1:FKnlejGoQIgSbePmgnBTAq0S1NNTXKwl1uUK6a5ercM=
 github.com/ginx-contribs/str2bytes v1.0.0/go.mod h1:TWpYSjKRTTuCSekBp6q+xBlrUJ4Xw7guCVXLzC13zPY=
 github.com/ginx-contribs/tint v1.1.0 h1:d2EPwZrUkjxQcdQjWQkDqoyzAb0s3L2GGQlijho+1/0=
 github.com/ginx-contribs/tint v1.1.0/go.mod h1:DUaYGxG2SvYtvpXYBWHIHspXcgLJb9JNvd+gA6mkApI=
+github.com/ginx-contribs/tint v1.2.0 h1:8RWmIKl1aiQTIA5H1/GRUIhZIOm7EOK9AonYbIarkBM=
+github.com/ginx-contribs/tint v1.2.0/go.mod h1:DUaYGxG2SvYtvpXYBWHIHspXcgLJb9JNvd+gA6mkApI=
 github.com/glebarez/go-sqlite v1.22.0 h1:uAcMJhaA6r3LHMTFgP0SifzgXg46yJkgxqyuyec+ruQ=
 github.com/glebarez/go-sqlite v1.22.0/go.mod h1:PlBIdHe0+aUEFn+r2/uthrWq4FxbzugL0L8Li6yQJbc=
 github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df/go.mod h1:GJr+FCSXshIwgHBtLglIg9M2l2kQSi6QjVAngtzI08Y=

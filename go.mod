@@ -10,7 +10,7 @@ require (
 	github.com/ginx-contribs/ent-sqlite v1.1.0
 	github.com/ginx-contribs/ginx v1.2.0
 	github.com/ginx-contribs/jwtx v1.0.0
-	github.com/ginx-contribs/logx v1.1.1
+	github.com/ginx-contribs/logx v1.1.2
 	github.com/ginx-contribs/str2bytes v1.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
@@ -48,7 +48,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/ginx-contribs/tint v1.1.0 // indirect
+	github.com/ginx-contribs/tint v1.2.0 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
