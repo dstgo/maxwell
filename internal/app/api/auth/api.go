@@ -16,6 +16,18 @@ type AuthAPI struct {
 	auth  *authandler.AuthHandler
 }
 
+// Ping
+// @Summary      Ping
+// @Description  test service if is available
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  types.Response
+// @Router       /ping [GET]
+func (a *AuthAPI) Ping(ctx *gin.Context) {
+	resp.Ok(ctx).Msg("pong").JSON()
+}
+
 // Login
 // @Summary      Login
 // @Description  use login
