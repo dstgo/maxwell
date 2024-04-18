@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 var (
@@ -46,7 +47,7 @@ var rootCmd = &cobra.Command{
 
 		// set it to the default logger
 		slog.SetDefault(logger.Slog())
-		slog.Info(fmt.Sprintf("logging in level: %s", appconf.Log.Level))
+		slog.Info(fmt.Sprintf("logging in level: %s", strings.ToLower(appconf.Log.Level.String())))
 
 		// this is the root context for the whole program
 		rootCtx := context.Background()
