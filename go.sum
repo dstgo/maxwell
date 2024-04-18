@@ -93,6 +93,10 @@ github.com/ginx-contribs/ginx v1.2.0 h1:Po0ZDiDTSj5cn4xkIvlH0KIplLlJjC8+luMaaoux
 github.com/ginx-contribs/ginx v1.2.0/go.mod h1:CjEeKEtiVbMto3SZBfOif1YhsDlLYNsMKR6voDGd+sQ=
 github.com/ginx-contribs/ginx v1.2.1 h1:n9uEK4fCCKigcJAo1NwnE0v1bCSeXL81uektzq0Jbdk=
 github.com/ginx-contribs/ginx v1.2.1/go.mod h1:CjEeKEtiVbMto3SZBfOif1YhsDlLYNsMKR6voDGd+sQ=
+github.com/ginx-contribs/ginx v1.2.2 h1:yQVu8kKce0SW/mKyx6Du+LTJ6TGVBKm8lMHxagv3SmM=
+github.com/ginx-contribs/ginx v1.2.2/go.mod h1:CjEeKEtiVbMto3SZBfOif1YhsDlLYNsMKR6voDGd+sQ=
+github.com/ginx-contribs/ginx v1.2.3 h1:U7hIJ9YPi1lDYYt0UzS/1LorLFh77TiVt1p+YIQ7r/Q=
+github.com/ginx-contribs/ginx v1.2.3/go.mod h1:CjEeKEtiVbMto3SZBfOif1YhsDlLYNsMKR6voDGd+sQ=
 github.com/ginx-contribs/jwtx v1.0.0 h1:P0WWfjLFluBboZraCy7te3RMMPt4cVF8A5cLVlBhiKc=
 github.com/ginx-contribs/jwtx v1.0.0/go.mod h1:bHo1bGMz7624rIS1s1V9edKUjhX1z/+4I9+brsW0RgA=
 github.com/ginx-contribs/logx v1.1.1 h1:6kSqi8zj8i+m8oskznqjN9TwKpppsnA6cvS/6lO42Io=
