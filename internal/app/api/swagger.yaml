@@ -1,19 +1,5 @@
 basePath: /api/
 definitions:
-  auth.LoginResult:
-    properties:
-      accessToken:
-        type: string
-      refreshToken:
-        type: string
-    type: object
-  auth.RefreshResult:
-    properties:
-      accessToken:
-        type: string
-      refreshToken:
-        type: string
-    type: object
   auth.RefreshTokenOption:
     properties:
       accessToken:
@@ -43,11 +29,27 @@ definitions:
       password:
         type: string
     type: object
+  auth.TokenResult:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  auth.VerifyCodeOption:
+    properties:
+      to:
+        type: string
+      usage:
+        type: string
+    type: object
   types.Response:
     properties:
       code:
         type: integer
       data: {}
+      error:
+        type: string
       msg:
         type: string
     type: object
@@ -63,6 +65,28 @@ info:
   title: MaxWell HTTP API
   version: v0.0.0Beta
 paths:
+  /auth/code:
+    post:
+      consumes:
+      - application/json
+      description: send verification code mail to specified email address
+      parameters:
+      - description: VerifyCodeOption
+        in: body
+        name: VerifyCodeOption
+        required: true
+        schema:
+          $ref: '#/definitions/auth.VerifyCodeOption'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: VerifyCode
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
@@ -91,7 +115,7 @@ paths:
             - $ref: '#/definitions/types.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.LoginResult'
+                  $ref: '#/definitions/auth.TokenResult'
               type: object
       summary: Login
       tags:
@@ -100,7 +124,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: refresh access token lifetime
+      description: ask for refresh token lifetime
       parameters:
       - description: refresh params
         in: body
@@ -118,7 +142,7 @@ paths:
             - $ref: '#/definitions/types.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/auth.RefreshResult'
+                  $ref: '#/definitions/auth.TokenResult'
               type: object
       summary: Refresh
       tags:
@@ -165,6 +189,21 @@ paths:
           schema:
             $ref: '#/definitions/types.Response'
       summary: ResetPassword
+      tags:
+      - auth
+  /ping:
+    get:
+      consumes:
+      - application/json
+      description: test service if is available
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.Response'
+      summary: Ping
       tags:
       - auth
 securityDefinitions:
