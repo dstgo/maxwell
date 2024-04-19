@@ -1,7 +1,8 @@
 package auth
 
 import (
-	"crypto/sha512"
+	"crypto/sha1"
+	"encoding/base64"
 	"github.com/dstgo/maxwell/ent"
 	"github.com/dstgo/maxwell/internal/app/data/repo"
 	"github.com/dstgo/maxwell/internal/app/types/auth"
@@ -21,13 +22,14 @@ type AuthHandler struct {
 	verifyCode *VerifyCodeHandler
 }
 
-func (a *AuthHandler) hash(s string) string {
-	sum512 := sha512.Sum512(str2bytes.Str2Bytes(s))
-	return str2bytes.Bytes2Str(sum512[:])
+// EncryptPassword encrypts password with sha512
+func (a *AuthHandler) EncryptPassword(s string) string {
+	sum512 := sha1.Sum(str2bytes.Str2Bytes(s))
+	return base64.StdEncoding.EncodeToString(sum512[:])
 }
 
-// LoginByPassword user login by password
-func (a *AuthHandler) LoginByPassword(ctx context.Context, option auth.LoginOption) (*TokenPair, error) {
+// LoginWithPassword user login by password
+func (a *AuthHandler) LoginWithPassword(ctx context.Context, option auth.LoginOption) (*TokenPair, error) {
 	// find user from repository
 	queryUser, err := a.userRepo.FindByNameOrMail(ctx, option.Username)
 	if ent.IsNotFound(err) {
@@ -37,7 +39,7 @@ func (a *AuthHandler) LoginByPassword(ctx context.Context, option auth.LoginOpti
 	}
 
 	// check password
-	hashPaswd := a.hash(option.Password)
+	hashPaswd := a.EncryptPassword(option.Password)
 	if queryUser.Password != hashPaswd {
 		return nil, auth.ErrPasswordMismatch
 	}
@@ -59,7 +61,7 @@ func (a *AuthHandler) LoginByPassword(ctx context.Context, option auth.LoginOpti
 func (a *AuthHandler) RegisterNewUser(ctx context.Context, option auth.RegisterOption) (*ent.User, error) {
 
 	// check verify code if is valid
-	err := a.verifyCode.CheckVerifyCode(ctx, option.Email, "register", option.Code)
+	err := a.verifyCode.CheckVerifyCode(ctx, option.Email, option.Code, auth.UsageRegister)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +70,7 @@ func (a *AuthHandler) RegisterNewUser(ctx context.Context, option auth.RegisterO
 	userByName, err := a.userRepo.FindByName(ctx, option.Username)
 	if !ent.IsNotFound(err) && err != nil {
 		return nil, statuserr.InternalError(err)
-	} else if userByName.UID != "" {
+	} else if userByName != nil {
 		return nil, auth.ErrUserAlreadyExists
 	}
 
@@ -76,37 +78,49 @@ func (a *AuthHandler) RegisterNewUser(ctx context.Context, option auth.RegisterO
 	userByEmail, err := a.userRepo.FindByEmail(ctx, option.Email)
 	if !ent.IsNotFound(err) && err != nil {
 		return nil, statuserr.InternalError(err)
-	} else if userByEmail.Email != "" {
+	} else if userByEmail != nil {
 		return nil, auth.ErrEmailAlreadyUsed
 	}
 
 	// create new user
-	user, err := a.userRepo.CreateNewUser(ctx, option.Username, option.Email, option.Password)
+	user, err := a.userRepo.CreateNewUser(ctx, option.Username, option.Email, a.EncryptPassword(option.Password))
 	if err != nil {
 		return nil, statuserr.InternalError(err)
+	}
+
+	// remove verify code
+	err = a.verifyCode.RemoveVerifyCode(ctx, option.Code, auth.UsageRegister)
+	if err != nil {
+		return nil, err
 	}
 	return user, nil
 }
 
 // ResetPassword resets specified user password and returns uid
 func (a *AuthHandler) ResetPassword(ctx context.Context, option auth.ResetPasswordOption) error {
-	if option.Password != option.NewPassword {
-		return auth.ErrPasswordInconsistent
-	}
 
 	// check verify code if is valid
-	err := a.verifyCode.CheckVerifyCode(ctx, option.Email, "reset", option.Code)
+	err := a.verifyCode.CheckVerifyCode(ctx, option.Email, option.Code, auth.UsageReset)
 	if err != nil {
 		return err
 	}
 
+	// check email if is already registered
 	queryUser, err := a.userRepo.FindByEmail(ctx, option.Email)
 	if ent.IsNotFound(err) {
 		return auth.ErrUserNotFund
 	}
 
-	if _, err := a.userRepo.UpdatePassword(ctx, queryUser.Email, a.hash(option.NewPassword)); err != nil {
+	// update password
+	_, err = a.userRepo.UpdateOnePassword(ctx, queryUser.ID, a.EncryptPassword(option.Password))
+	if err != nil {
 		return statuserr.InternalError(err)
+	}
+
+	// remove verify code
+	err = a.verifyCode.RemoveVerifyCode(ctx, option.Code, auth.UsageReset)
+	if err != nil {
+		return err
 	}
 	return nil
 }
