@@ -79,7 +79,7 @@ jwt:
     key: maxwell-token-access
   # refresh-token
   refresh:
-    expire: 3d
+    expire: 72h
     key: maxwell-token-refresh
   delay: 15m
 
@@ -108,7 +108,8 @@ email:
       - consumerA
       - consumerB
   code:
-    ttl: 5min
+    ttl: 5m
+    retry: 60s
 
 
 

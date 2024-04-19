@@ -77,6 +77,7 @@ type EmailConf struct {
 		Consumers []string `mapstructure:"consumers"`
 	} `mapstructure:"mq"`
 	Code struct {
-		TTL time.Duration `mapstructure:"ttl"`
+		TTL      time.Duration `mapstructure:"ttl"`
+		RetryTTL time.Duration `mapstructure:"retry"`
 	} `mapstructure:"code"`
 }
