@@ -83,7 +83,7 @@ func (t *TokenHandler) Issue(ctx context.Context, payload TokenPayload, refresh 
 	}
 
 	// associated with access token
-	if err := t.accessCache.Set(ctx, refreshToken.Claims.ID, accessToken.Claims.ID, t.jwtConf.Refresh.Expire); err != nil {
+	if err := t.refreshCache.Set(ctx, refreshToken.Claims.ID, accessToken.Claims.ID, t.jwtConf.Refresh.Expire); err != nil {
 		return tokenPair, nil
 	}
 	tokenPair.RefreshToken = refreshToken
