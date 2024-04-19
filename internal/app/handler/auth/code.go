@@ -2,68 +2,63 @@ package auth
 
 import (
 	"errors"
+	"fmt"
+	"github.com/dstgo/maxwell/internal/app/data/cache"
 	"github.com/dstgo/maxwell/internal/app/handler/email"
 	"github.com/dstgo/maxwell/internal/app/types/auth"
 	"github.com/ginx-contribs/ginx/pkg/resp/statuserr"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/net/context"
 	"math/rand/v2"
-	"time"
 )
 
-func NewVerifyCodeHandler(client *redis.Client, sender *email.Handler) *VerifyCodeHandler {
+func NewVerifyCodeHandler(codeCache cache.VerifyCodeCache, sender *email.Handler) *VerifyCodeHandler {
 	return &VerifyCodeHandler{
-		cache:  client,
-		sender: sender,
+		codeCache: codeCache,
+		sender:    sender,
 	}
 }
 
 type VerifyCodeHandler struct {
-	cache  *redis.Client
-	sender *email.Handler
+	codeCache cache.VerifyCodeCache
+	sender    *email.Handler
 }
 
 // SendVerifyCodeEmail send a verify code email to the specified address
-func (v *VerifyCodeHandler) SendVerifyCodeEmail(ctx context.Context, to, usage string, ttl, retryttl time.Duration) error {
+func (v *VerifyCodeHandler) SendVerifyCodeEmail(ctx context.Context, to string, usage auth.Usage) error {
+	ttl := v.sender.Cfg.Code.TTL
+	retryttl := v.sender.Cfg.Code.RetryTTL
+	var code string
 
-	// check retry ttl
-	retryRes, err := v.cache.Get(ctx, to).Result()
-	if !errors.Is(err, redis.Nil) && err != nil {
-		return statuserr.InternalError(err)
-	} else if err == nil && retryRes != "" {
-		return auth.ErrVerifyCodeRetryLater
-	}
+	for try := 0; ; try++ {
+		// max retry 10 times
+		if try > 10 {
+			return auth.ErrVerifyCodeRetryLater
+		}
 
-	// set retry ttl
-	if err := v.cache.Set(ctx, to, "", retryttl).Err(); err != nil {
-		return statuserr.InternalError(err)
-	}
+		// generated a verification code
+		code = NewVerifyCode(8)
+		tryOk, err := v.codeCache.Set(ctx, usage, code, to, ttl, retryttl)
 
-	// generate verify code
-	verifyCode := NewVerifyCode(8)
-	codeKey := usage + ":" + verifyCode
-
-	// check verify code if is repeated
-	for i := 0; i < 10; i++ {
-		_, err := v.cache.Get(ctx, codeKey).Result()
-		if errors.Is(err, redis.Nil) {
-			break
+		if errors.Is(err, cache.ErrCodeRepeated) {
+			continue
 		} else if err != nil {
 			return statuserr.InternalError(err)
-		} else { // repeat,
-			// regenerate a new one
-			verifyCode = NewVerifyCode(8)
+		} else if !tryOk {
+			return auth.ErrVerifyCodeRetryLater
+		} else {
+			break
 		}
 	}
-	// set verify code
-	if _, err := v.cache.Set(ctx, codeKey, to, ttl).Result(); err != nil {
-		return statuserr.InternalError(err)
-	}
+
+	pendingMail := email.TmplConfirmCode(usage.String(), to, code, ttl)
 
 	// send email
-	err = v.sender.SendHermesEmail(ctx, "you are applying for verification code", []string{to}, email.ConfirmCodeMail(usage, to, verifyCode, ttl))
+	err := v.sender.SendHermesEmail(ctx, fmt.Sprintf("you are applying for verification code for %s.", usage.String()), []string{to}, pendingMail)
 	if err != nil {
-		v.cache.Del(ctx, codeKey)
+		if err := v.codeCache.Del(ctx, usage, code); err != nil {
+			return statuserr.InternalError(err)
+		}
 		return err
 	}
 
@@ -71,12 +66,19 @@ func (v *VerifyCodeHandler) SendVerifyCodeEmail(ctx context.Context, to, usage s
 }
 
 // CheckVerifyCode check verify code if is valid
-func (v *VerifyCodeHandler) CheckVerifyCode(ctx context.Context, to, usage, code string) error {
-	codeKey := usage + ":" + code
-	getTo, err := v.cache.Get(ctx, codeKey).Result()
+func (v *VerifyCodeHandler) CheckVerifyCode(ctx context.Context, to, code string, usage auth.Usage) error {
+	getTo, err := v.codeCache.Get(ctx, usage, code)
 	if errors.Is(err, redis.Nil) || getTo != to {
 		return auth.ErrVerifyCodeInvalid
 	} else if err != nil {
+		return statuserr.InternalError(err)
+	}
+	return nil
+}
+
+func (v *VerifyCodeHandler) RemoveVerifyCode(ctx context.Context, code string, usage auth.Usage) error {
+	err := v.codeCache.Del(ctx, usage, code)
+	if err != nil {
 		return statuserr.InternalError(err)
 	}
 	return nil
@@ -88,7 +90,7 @@ func NewVerifyCode(n int) string {
 	code := make([]byte, n)
 	for i, _ := range code {
 		if rand.Int()%2 == 1 {
-			code[i] = byte(rand.Int() % 10)
+			code[i] = '0' + byte(rand.Int()%10)
 		} else {
 			code[i] = 'A' + byte(rand.Int()%26)
 		}

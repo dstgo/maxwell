@@ -16,7 +16,7 @@ func TestGeneratedAuthCode(t *testing.T) {
 		},
 	}
 
-	html, err := h.GenerateHTML(ConfirmCodeMail("sign up", "jack", "Y2635H6", time.Minute*5))
+	html, err := h.GenerateHTML(TmplConfirmCode("sign up", "jack", "Y2635H6", time.Minute*5))
 	assert.Nil(t, err)
 	err = os.WriteFile("testdata/auth_code.html", []byte(html), 0666)
 	assert.Nil(t, err)

@@ -1,6 +1,7 @@
 package mq
 
 import (
+	"fmt"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/net/context"
 	"log/slog"
@@ -17,22 +18,24 @@ type StreamQueue struct {
 }
 
 func (h *StreamQueue) Publish(ctx context.Context, topic string, msg any, maxLen int64) (id string, err error) {
-	return h.redis.XAdd(ctx, &redis.XAddArgs{
+	result, err := h.redis.XAdd(ctx, &redis.XAddArgs{
 		Stream: topic,
 		MaxLen: maxLen,
-		Approx: true,
 		Values: msg,
 		ID:     "*",
 	}).Result()
+
+	return result, err
 }
 
 func (h *StreamQueue) Consume(ctx context.Context, topic, group, consumer string, batchSize int64, cb Consumer) error {
 	stream := h.redis.XGroupCreateMkStream(ctx, topic, group, "0")
-	if stream.Err() != nil {
+	if stream.Err() != nil && stream.Err().Error() != "BUSYGROUP Consumer Group name already exists" {
 		return stream.Err()
 	}
 
 	go func() {
+		slog.Debug(fmt.Sprintf("%s is running", consumer), slog.String("topic", topic), slog.String("group", group))
 		defer func() {
 			if err := recover(); err != nil {
 				slog.Error("stream panic recovered", slog.Any("error", err))
@@ -40,6 +43,7 @@ func (h *StreamQueue) Consume(ctx context.Context, topic, group, consumer string
 		}()
 
 		for {
+
 			// read the latest message
 			if id, err := h.consume(ctx, topic, group, consumer, ">", batchSize, cb); err != nil {
 				errorLog("stream consume > failed", err, id, topic, group, consumer)
@@ -53,6 +57,7 @@ func (h *StreamQueue) Consume(ctx context.Context, topic, group, consumer string
 			// clear dead messages in pending list
 			if err := h.clearDead(ctx, topic, group, time.Minute*5, 10); err != nil {
 				slog.Error("stream clear dead failed", slog.Any("error", err))
+				return
 			}
 
 			time.Sleep(1)
@@ -108,6 +113,10 @@ func (h *StreamQueue) clearDead(ctx context.Context, topic, group string, idle t
 	var ids []string
 	for _, pending := range pel {
 		ids = append(ids, pending.ID)
+	}
+
+	if len(ids) == 0 {
+		return nil
 	}
 
 	/// delete msg

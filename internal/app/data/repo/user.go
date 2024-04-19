@@ -50,10 +50,9 @@ func (u *UserRepo) CreateNewUser(ctx context.Context, username string, email str
 		Save(ctx)
 }
 
-// UpdatePassword update the user password with specified email
-func (u *UserRepo) UpdatePassword(ctx context.Context, email string, password string) (int, error) {
-	return u.Ent.User.Update().
-		Where(user.PasswordEQ(email)).
+// UpdateOnePassword updates the user password with specified email
+func (u *UserRepo) UpdateOnePassword(ctx context.Context, id int, password string) (*ent.User, error) {
+	return u.Ent.User.UpdateOneID(id).
 		SetPassword(password).
 		Save(ctx)
 }

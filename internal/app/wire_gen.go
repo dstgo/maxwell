@@ -9,6 +9,7 @@ package app
 import (
 	"github.com/dstgo/maxwell/internal/app/api"
 	auth2 "github.com/dstgo/maxwell/internal/app/api/auth"
+	"github.com/dstgo/maxwell/internal/app/data/cache"
 	"github.com/dstgo/maxwell/internal/app/data/mq"
 	"github.com/dstgo/maxwell/internal/app/data/repo"
 	"github.com/dstgo/maxwell/internal/app/handler/auth"
@@ -31,6 +32,7 @@ func setup(env *types.Env) (api.Router, error) {
 	tokenHandler := auth.NewTokenHandler(jwtConf, client)
 	entClient := env.Ent
 	userRepo := repo.NewUserRepo(entClient)
+	redisCodeCache := cache.NewRedisCodeCache(client)
 	emailConf := appConf.Email
 	mailClient := env.Email
 	streamQueue := mq.NewStreamQueue(client)
@@ -38,9 +40,9 @@ func setup(env *types.Env) (api.Router, error) {
 	if err != nil {
 		return api.Router{}, err
 	}
-	verifyCodeHandler := auth.NewVerifyCodeHandler(client, handler)
+	verifyCodeHandler := auth.NewVerifyCodeHandler(redisCodeCache, handler)
 	authHandler := auth.NewAuthHandler(userRepo, tokenHandler, verifyCodeHandler)
-	authAPI := auth2.NewAuthAPI(tokenHandler, authHandler)
+	authAPI := auth2.NewAuthAPI(tokenHandler, authHandler, verifyCodeHandler)
 	router := auth2.NewRouter(routerGroup, authAPI)
 	apiRouter := api.Router{
 		Auth: router,

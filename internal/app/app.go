@@ -44,7 +44,7 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*ginx.Server, error) {
 	slog.Debug("maxwell server is initializing")
 
 	// initialize database
-	slog.Debug(fmt.Sprintf("connecting to database(%s)", appConf.DB.Address))
+	slog.Debug(fmt.Sprintf("connecting to %s(%s)", appConf.DB.Driver, appConf.DB.Address))
 	db, err := initializeDB(ctx, appConf.DB)
 	if err != nil {
 		return nil, err
@@ -58,6 +58,7 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*ginx.Server, error) {
 	}
 
 	// initialize email client
+	slog.Debug(fmt.Sprintf("establish email client(%s:%d)", appConf.Email.Host, appConf.Email.Port))
 	emailClient, err := initializeEmail(ctx, appConf.Email)
 	if err != nil {
 		return nil, err
@@ -78,9 +79,10 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*ginx.Server, error) {
 		ginx.WithNoRoute(middleware.NoRoute()),
 		ginx.WithMiddlewares(
 			middleware.Recovery(slog.Default(), nil),
-			middleware.Logger(slog.Default(), "access record"),
+			middleware.Logger(slog.Default(), "accesslog"),
 		),
 	)
+	ginx.DefaultValidateHandler = validatePramsHandler
 
 	// whether to enable pprof program profiling
 	if appConf.Server.Pprof {
@@ -104,7 +106,7 @@ func NewApp(ctx context.Context, appConf *conf.AppConf) (*ginx.Server, error) {
 		AppConf: appConf,
 		Ent:     db,
 		Redis:   redisClient,
-		Router:  server.RouterGroup(),
+		Router:  server.RouterGroup().Group("/api"),
 		Email:   emailClient,
 	})
 	if err != nil {

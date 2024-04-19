@@ -1,11 +1,29 @@
 basePath: /api/
 definitions:
+  auth.LoginOption:
+    properties:
+      password:
+        description: user password
+        type: string
+      remember:
+        description: remember user or not
+        type: boolean
+      username:
+        description: username or email
+        type: string
+    required:
+    - password
+    - username
+    type: object
   auth.RefreshTokenOption:
     properties:
       accessToken:
         type: string
       refreshToken:
         type: string
+    required:
+    - accessToken
+    - refreshToken
     type: object
   auth.RegisterOption:
     properties:
@@ -17,6 +35,10 @@ definitions:
         type: string
       username:
         type: string
+    required:
+    - code
+    - password
+    - username
     type: object
   auth.ResetPasswordOption:
     properties:
@@ -24,10 +46,11 @@ definitions:
         type: string
       email:
         type: string
-      newPassword:
-        type: string
       password:
         type: string
+    required:
+    - code
+    - password
     type: object
   auth.TokenResult:
     properties:
@@ -36,12 +59,24 @@ definitions:
       refreshToken:
         type: string
     type: object
+  auth.Usage:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - UsageUnknown
+    - UsageRegister
+    - UsageReset
   auth.VerifyCodeOption:
     properties:
       to:
         type: string
       usage:
-        type: string
+        $ref: '#/definitions/auth.Usage'
+    required:
+    - usage
     type: object
   types.Response:
     properties:
@@ -91,20 +126,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: use login
+      description: login with password, and returns jwt token pair
       parameters:
-      - description: user password
-        in: query
-        name: password
-        type: string
-      - description: remember user or not
-        in: query
-        name: remember
-        type: boolean
-      - description: username or email
-        in: query
-        name: username
-        type: string
+      - description: login params
+        in: body
+        name: loginOption
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginOption'
       produces:
       - application/json
       responses:
@@ -151,7 +180,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: register a new user
+      description: register a new user with verification code
       parameters:
       - description: register params
         in: body
@@ -173,7 +202,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: reset user password without login
+      description: reset user password with verification code
       parameters:
       - description: reset params
         in: body
@@ -195,14 +224,19 @@ paths:
     get:
       consumes:
       - application/json
-      description: test service if is available
+      description: test server if is available
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/types.Response'
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
       summary: Ping
       tags:
       - auth
