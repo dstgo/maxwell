@@ -88,6 +88,11 @@ func (h *StreamQueue) consume(ctx context.Context, topic, group, consumer, id st
 				if err := h.redis.XAck(ctx, topic, group, message.ID).Err(); err != nil {
 					return message.ID, err
 				}
+
+				// del it if ack ok
+				if err := h.redis.XDel(ctx, topic, message.ID).Err(); err != nil {
+					return message.ID, err
+				}
 			}
 		}
 	}
