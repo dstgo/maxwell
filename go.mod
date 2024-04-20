@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/ginx-contribs/dbx v1.0.1
 	github.com/ginx-contribs/ent-sqlite v1.1.0
-	github.com/ginx-contribs/ginx v1.2.3
+	github.com/ginx-contribs/ginx v1.3.0
 	github.com/ginx-contribs/jwtx v1.0.0
 	github.com/ginx-contribs/logx v1.1.2
 	github.com/ginx-contribs/str2bytes v1.0.0
@@ -87,6 +87,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/orcaman/concurrent-map/v2 v2.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
