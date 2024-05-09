@@ -4,17 +4,18 @@
 //go:build !wireinject
 // +build !wireinject
 
-package app
+package server
 
 import (
-	"github.com/dstgo/maxwell/internal/app/api"
-	auth2 "github.com/dstgo/maxwell/internal/app/api/auth"
-	"github.com/dstgo/maxwell/internal/app/data/cache"
-	"github.com/dstgo/maxwell/internal/app/data/mq"
-	"github.com/dstgo/maxwell/internal/app/data/repo"
-	"github.com/dstgo/maxwell/internal/app/handler/auth"
-	"github.com/dstgo/maxwell/internal/app/handler/email"
-	"github.com/dstgo/maxwell/internal/app/types"
+	"github.com/dstgo/maxwell/server/api"
+	auth2 "github.com/dstgo/maxwell/server/api/auth"
+	"github.com/dstgo/maxwell/server/api/system"
+	"github.com/dstgo/maxwell/server/data/cache"
+	"github.com/dstgo/maxwell/server/data/mq"
+	"github.com/dstgo/maxwell/server/data/repo"
+	"github.com/dstgo/maxwell/server/handler/auth"
+	"github.com/dstgo/maxwell/server/handler/email"
+	"github.com/dstgo/maxwell/server/types"
 )
 
 import (
@@ -44,8 +45,11 @@ func setup(env *types.Env) (api.Router, error) {
 	authHandler := auth.NewAuthHandler(userRepo, tokenHandler, verifyCodeHandler)
 	authAPI := auth2.NewAuthAPI(tokenHandler, authHandler, verifyCodeHandler)
 	router := auth2.NewRouter(routerGroup, authAPI)
+	systemAPI := system.NewSystemAPI()
+	systemRouter := system.NewRouter(routerGroup, systemAPI)
 	apiRouter := api.Router{
-		Auth: router,
+		Auth:   router,
+		System: systemRouter,
 	}
 	return apiRouter, nil
 }
