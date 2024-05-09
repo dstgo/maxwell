@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadConf(t *testing.T) {
-	var conf AppConf
+	var conf App
 	err := cfgx.LoadConfigAndMapTo("./conf.yaml", &conf)
 	assert.Nil(t, err)
 	marshal, err := yaml.Marshal(conf)

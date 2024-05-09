@@ -4,8 +4,8 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"github.com/dstgo/maxwell/ent"
-	"github.com/dstgo/maxwell/internal/app/data/repo"
-	"github.com/dstgo/maxwell/internal/app/types/auth"
+	"github.com/dstgo/maxwell/server/data/repo"
+	"github.com/dstgo/maxwell/server/types/auth"
 	"github.com/ginx-contribs/ginx/pkg/resp/statuserr"
 	"github.com/ginx-contribs/str2bytes"
 	"golang.org/x/net/context"
@@ -29,7 +29,7 @@ func (a *AuthHandler) EncryptPassword(s string) string {
 }
 
 // LoginWithPassword user login by password
-func (a *AuthHandler) LoginWithPassword(ctx context.Context, option auth.LoginOption) (*TokenPair, error) {
+func (a *AuthHandler) LoginWithPassword(ctx context.Context, option auth.LoginOption) (*auth.TokenPair, error) {
 	// find user from repository
 	queryUser, err := a.userRepo.FindByNameOrMail(ctx, option.Username)
 	if ent.IsNotFound(err) {
@@ -45,9 +45,10 @@ func (a *AuthHandler) LoginWithPassword(ctx context.Context, option auth.LoginOp
 	}
 
 	// issue token
-	tokenPair, err := a.token.Issue(ctx, TokenPayload{
+	tokenPair, err := a.token.Issue(ctx, auth.TokenPayload{
 		Username: queryUser.Username,
 		UserId:   queryUser.UID,
+		Remember: option.Remember,
 	}, option.Remember)
 
 	if err != nil {

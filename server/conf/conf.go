@@ -6,29 +6,33 @@ import (
 	"time"
 )
 
-type AppConf struct {
-	Server ServerConf    `mapstructure:"server"`
-	Log    LogConf       `mapstructure:"log"`
-	DB     dbx.Options   `mapstructure:"db"`
-	Redis  RedisConf     `mapstructure:"redis"`
-	Email  EmailConf     `mapstructure:"email"`
-	Jwt    JwtConf       `mapstructure:"jwt"`
-	Limit  RateLimitConf `mapstructure:"limit"`
+type App struct {
+	Server Server      `mapstructure:"server"`
+	Log    Log         `mapstructure:"log"`
+	DB     dbx.Options `mapstructure:"db"`
+	Redis  Redis       `mapstructure:"redis"`
+	Email  Email       `mapstructure:"email"`
+	Jwt    Jwt         `mapstructure:"jwt"`
+	Limit  RateLimit   `mapstructure:"limit"`
 
 	Version   string `mapstructure:"-"`
 	BuildTime string `mapstructure:"-"`
 }
 
-type ServerConf struct {
+type Server struct {
 	Address      string        `mapstructure:"address"`
 	ReadTimeout  time.Duration `mapstructure:"readTimeout"`
 	WriteTimeout time.Duration `mapstructure:"writeTimeout"`
 	IdleTimeout  time.Duration `mapstructure:"idleTimeout"`
 	MultipartMax int64         `mapstructure:"multipartMax"`
 	Pprof        bool          `mapstructure:"pprof"`
+	TLS          struct {
+		Cert string `mapstructure:"cert"`
+		Key  string `mapstructure:"key"`
+	} `mapstructure:"tls"`
 }
 
-type LogConf struct {
+type Log struct {
 	Filename string     `mapstructure:"filename"`
 	Prompt   string     `mapstructure:"-"`
 	Level    slog.Level `mapstructure:"level"`
@@ -37,14 +41,14 @@ type LogConf struct {
 	Color    bool       `mapstructure:"color"`
 }
 
-type RedisConf struct {
+type Redis struct {
 	Address      string        `mapstructure:"address"`
 	Password     string        `mapstructure:"password"`
 	WriteTimeout time.Duration `mapstructure:"writeTimeout"`
 	ReadTimeout  time.Duration `mapstructure:"readTimeout"`
 }
 
-type JwtConf struct {
+type Jwt struct {
 	Issuer string `mapstructure:"issuer"`
 	Access struct {
 		Expire time.Duration `mapstructure:"expire"`
@@ -57,14 +61,14 @@ type JwtConf struct {
 	} `mapstructure:"refresh"`
 }
 
-type RateLimitConf struct {
-	IpLimit struct {
+type RateLimit struct {
+	Public struct {
 		Limit  int           `mapstructure:"limit"`
 		Window time.Duration `mapstructure:"window"`
-	} `mapstructure:"ipLimit"`
+	} `mapstructure:"public"`
 }
 
-type EmailConf struct {
+type Email struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	Username string `mapstructure:"username"`

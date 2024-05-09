@@ -1,13 +1,13 @@
 //go:build wireinject
 
 // The build tag makes sure the stub is not built in the final build
-package app
+package server
 
 import (
-	"github.com/dstgo/maxwell/internal/app/api"
-	"github.com/dstgo/maxwell/internal/app/data"
-	"github.com/dstgo/maxwell/internal/app/handler"
-	"github.com/dstgo/maxwell/internal/app/types"
+	"github.com/dstgo/maxwell/server/api"
+	"github.com/dstgo/maxwell/server/data"
+	"github.com/dstgo/maxwell/server/handler"
+	"github.com/dstgo/maxwell/server/types"
 	"github.com/google/wire"
 )
 

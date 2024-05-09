@@ -18,8 +18,10 @@ definitions:
   auth.RefreshTokenOption:
     properties:
       accessToken:
+        description: access token
         type: string
       refreshToken:
+        description: refresh token
         type: string
     required:
     - accessToken
@@ -28,12 +30,16 @@ definitions:
   auth.RegisterOption:
     properties:
       code:
+        description: verification code from verify email
         type: string
       email:
+        description: user email address
         type: string
       password:
+        description: user password
         type: string
       username:
+        description: username must be alphanumeric
         type: string
     required:
     - code
@@ -43,10 +49,13 @@ definitions:
   auth.ResetPasswordOption:
     properties:
       code:
+        description: verification code from verify email
         type: string
       email:
+        description: user email address
         type: string
       password:
+        description: new password
         type: string
     required:
     - code
@@ -72,9 +81,12 @@ definitions:
   auth.VerifyCodeOption:
     properties:
       to:
+        description: email receiver
         type: string
       usage:
-        $ref: '#/definitions/auth.Usage'
+        allOf:
+        - $ref: '#/definitions/auth.Usage'
+        description: 'verify code usage: 1-register 2-reset password'
     required:
     - usage
     type: object
@@ -153,7 +165,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: ask for refresh token lifetime
+      description: ask for refresh access token lifetime with refresh token
       parameters:
       - description: refresh params
         in: body
@@ -239,7 +251,27 @@ paths:
               type: object
       summary: Ping
       tags:
-      - auth
+      - system
+  /pong:
+    get:
+      consumes:
+      - application/json
+      description: test if server authentication is working
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: Pong
+      tags:
+      - system
 securityDefinitions:
   BearerAuth:
     in: header

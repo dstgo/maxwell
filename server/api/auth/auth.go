@@ -1,11 +1,13 @@
 package auth
 
 import (
-	authandler "github.com/dstgo/maxwell/internal/app/handler/auth"
-	"github.com/dstgo/maxwell/internal/app/types/auth"
+	"errors"
+	authandler "github.com/dstgo/maxwell/server/handler/auth"
+	"github.com/dstgo/maxwell/server/types/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/ginx-contribs/ginx"
 	"github.com/ginx-contribs/ginx/pkg/resp"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func NewAuthAPI(token *authandler.TokenHandler, auth *authandler.AuthHandler, verifycode *authandler.VerifyCodeHandler) *AuthAPI {
@@ -16,18 +18,6 @@ type AuthAPI struct {
 	token      *authandler.TokenHandler
 	auth       *authandler.AuthHandler
 	verifycode *authandler.VerifyCodeHandler
-}
-
-// Ping
-// @Summary      Ping
-// @Description  test server if is available
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Success      200  {object}  types.Response{data=string}
-// @Router       /ping [GET]
-func (a *AuthAPI) Ping(ctx *gin.Context) {
-	resp.Ok(ctx).Msg("pong").JSON()
 }
 
 // Login
@@ -104,7 +94,7 @@ func (a *AuthAPI) ResetPassword(ctx *gin.Context) {
 
 // Refresh
 // @Summary      Refresh
-// @Description  ask for refresh token lifetime
+// @Description  ask for refresh access token lifetime with refresh token
 // @Tags         auth
 // @Accept       json
 // @Produce      json
@@ -120,7 +110,12 @@ func (a *AuthAPI) Refresh(ctx *gin.Context) {
 	// ask for refresh token
 	tokenPair, err := a.token.Refresh(ctx, refreshOpt.AccessToken, refreshOpt.RefreshToken)
 	if err != nil {
-		resp.Fail(ctx).Error(err).JSON()
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			resp.Fail(ctx).Error(auth.ErrCredentialExpired).JSON()
+		} else {
+			ctx.Error(err)
+			resp.Fail(ctx).Error(auth.ErrCredentialInvalid).JSON()
+		}
 	} else {
 		resp.Ok(ctx).Msg("refresh ok").Data(auth.TokenResult{
 			AccessToken:  tokenPair.AccessToken.TokenString,

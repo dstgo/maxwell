@@ -3,8 +3,8 @@ package email
 import (
 	"fmt"
 	"github.com/bytedance/sonic"
-	"github.com/dstgo/maxwell/internal/app/conf"
-	"github.com/dstgo/maxwell/internal/app/data/mq"
+	"github.com/dstgo/maxwell/server/conf"
+	"github.com/dstgo/maxwell/server/data/mq"
 	"github.com/ginx-contribs/ginx/pkg/resp/statuserr"
 	"github.com/ginx-contribs/str2bytes"
 	"github.com/matcornic/hermes/v2"
@@ -44,7 +44,7 @@ func BuildMailMsg(msg Message) (*mail.Msg, error) {
 	return mailMsg, nil
 }
 
-func NewEmailHandler(cfg conf.EmailConf, client *mail.Client, queue mq.Queue) (*Handler, error) {
+func NewEmailHandler(cfg conf.Email, client *mail.Client, queue mq.Queue) (*Handler, error) {
 	h := &Handler{Cfg: cfg}
 
 	h.pub = &Publisher{queue: queue, topic: cfg.MQ.Topic, maxLen: cfg.MQ.MaxLen}
@@ -76,7 +76,7 @@ func NewEmailHandler(cfg conf.EmailConf, client *mail.Client, queue mq.Queue) (*
 
 // Handler is email handler
 type Handler struct {
-	Cfg     conf.EmailConf
+	Cfg     conf.Email
 	pub     *Publisher
 	cons    []*Consumer
 	product hermes.Hermes

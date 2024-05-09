@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/dstgo/maxwell/ent"
-	"github.com/dstgo/maxwell/internal/app/conf"
+	"github.com/dstgo/maxwell/server/conf"
 	"github.com/ginx-contribs/ginx"
 	"github.com/ginx-contribs/ginx/constant/status"
 	"github.com/ginx-contribs/ginx/pkg/resp/statuserr"
@@ -20,7 +20,7 @@ type Response struct {
 
 // Env app env to hold all dependent components
 type Env struct {
-	AppConf *conf.AppConf
+	AppConf *conf.App
 	Ent     *ent.Client
 	Redis   *redis.Client
 	Router  *ginx.RouterGroup

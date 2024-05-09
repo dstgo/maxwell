@@ -11,17 +11,21 @@ server:
   multipartMax: 52428800
   # enabled pprof program profiling
   pprof: false
+  # tls certificate
+  tls:
+    cert: /etc/maxwell/example.com.cert
+    key: /etc/maxwell/example.com.key
 
 # http rate limit
 limit:
-  # count rate 10/3min
-  count:
-    limit: 10
-    window: 3m
-  bucket:
-    capacity: 10000
+  # the maximum request times for public api in given duration
+  public:
+    limit: 30
+    duration: 5m
+  private:
 
 
+# logger configuration
 log:
   # log output file
   filename: /etc/maxwell/access.log
@@ -81,7 +85,7 @@ jwt:
   refresh:
     expire: 72h
     key: maxwell-token-refresh
-  delay: 15m
+  delay: 5m
 
 # email configuration
 email:
@@ -107,8 +111,11 @@ email:
     consumers:
       - consumerA
       - consumerB
+  # verification code configuration
   code:
+    # life-time of verification code
     ttl: 5m
+    # max wait time before asking for new verification code
     retry: 60s
 
 

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"github.com/dstgo/maxwell/server/types/route"
 	"github.com/ginx-contribs/ginx"
 )
 
@@ -10,10 +11,8 @@ type Router struct {
 
 func NewRouter(group *ginx.RouterGroup, auth *AuthAPI) Router {
 
-	// ping
-	group.GET("/ping", auth.Ping)
-
-	authGroup := group.Group("/auth")
+	// auth
+	authGroup := group.MGroup("/auth", ginx.M{route.Public})
 	authGroup.POST("/login", auth.Login)
 	authGroup.POST("/register", auth.Register)
 	authGroup.POST("/reset", auth.ResetPassword)

@@ -1,18 +1,25 @@
 package api
 
 import (
-	"github.com/dstgo/maxwell/internal/app/api/auth"
+	"github.com/dstgo/maxwell/server/api/auth"
+	"github.com/dstgo/maxwell/server/api/system"
 	"github.com/google/wire"
 )
 
 type Router struct {
-	Auth auth.Router
+	Auth   auth.Router
+	System system.Router
 }
 
 var Provider = wire.NewSet(
 	// auth router
 	auth.NewAuthAPI,
 	auth.NewRouter,
+	// system router
+	system.NewSystemAPI,
+	system.NewRouter,
+
+	// build Router struct
 	wire.Struct(new(Router), "*"),
 )
 

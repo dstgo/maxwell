@@ -1,9 +1,9 @@
 package data
 
 import (
-	"github.com/dstgo/maxwell/internal/app/data/cache"
-	"github.com/dstgo/maxwell/internal/app/data/mq"
-	"github.com/dstgo/maxwell/internal/app/data/repo"
+	"github.com/dstgo/maxwell/server/data/cache"
+	"github.com/dstgo/maxwell/server/data/mq"
+	"github.com/dstgo/maxwell/server/data/repo"
 	"github.com/google/wire"
 )
 

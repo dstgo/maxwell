@@ -3,9 +3,9 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/dstgo/maxwell/internal/app/data/cache"
-	"github.com/dstgo/maxwell/internal/app/handler/email"
-	"github.com/dstgo/maxwell/internal/app/types/auth"
+	"github.com/dstgo/maxwell/server/data/cache"
+	"github.com/dstgo/maxwell/server/handler/email"
+	"github.com/dstgo/maxwell/server/types/auth"
 	"github.com/ginx-contribs/ginx/pkg/resp/statuserr"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/net/context"
