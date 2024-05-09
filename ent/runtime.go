@@ -3,7 +3,11 @@
 package ent
 
 import (
+	"github.com/dstgo/maxwell/ent/container"
+	"github.com/dstgo/maxwell/ent/job"
+	"github.com/dstgo/maxwell/ent/mount"
 	"github.com/dstgo/maxwell/ent/node"
+	"github.com/dstgo/maxwell/ent/port"
 	"github.com/dstgo/maxwell/ent/schema"
 	"github.com/dstgo/maxwell/ent/user"
 )
@@ -12,6 +16,42 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	containerFields := schema.Container{}.Fields()
+	_ = containerFields
+	// containerDescCreatedAt is the schema descriptor for created_at field.
+	containerDescCreatedAt := containerFields[5].Descriptor()
+	// container.DefaultCreatedAt holds the default value on creation for the created_at field.
+	container.DefaultCreatedAt = containerDescCreatedAt.Default.(func() int64)
+	// containerDescUpdatedAt is the schema descriptor for updated_at field.
+	containerDescUpdatedAt := containerFields[6].Descriptor()
+	// container.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	container.DefaultUpdatedAt = containerDescUpdatedAt.Default.(func() int64)
+	// container.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	container.UpdateDefaultUpdatedAt = containerDescUpdatedAt.UpdateDefault.(func() int64)
+	jobFields := schema.Job{}.Fields()
+	_ = jobFields
+	// jobDescCreatedAt is the schema descriptor for created_at field.
+	jobDescCreatedAt := jobFields[3].Descriptor()
+	// job.DefaultCreatedAt holds the default value on creation for the created_at field.
+	job.DefaultCreatedAt = jobDescCreatedAt.Default.(func() int64)
+	// jobDescUpdatedAt is the schema descriptor for updated_at field.
+	jobDescUpdatedAt := jobFields[4].Descriptor()
+	// job.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	job.DefaultUpdatedAt = jobDescUpdatedAt.Default.(func() int64)
+	// job.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	job.UpdateDefaultUpdatedAt = jobDescUpdatedAt.UpdateDefault.(func() int64)
+	mountFields := schema.Mount{}.Fields()
+	_ = mountFields
+	// mountDescCreatedAt is the schema descriptor for created_at field.
+	mountDescCreatedAt := mountFields[3].Descriptor()
+	// mount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	mount.DefaultCreatedAt = mountDescCreatedAt.Default.(func() int64)
+	// mountDescUpdatedAt is the schema descriptor for updated_at field.
+	mountDescUpdatedAt := mountFields[4].Descriptor()
+	// mount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	mount.DefaultUpdatedAt = mountDescUpdatedAt.Default.(func() int64)
+	// mount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	mount.UpdateDefaultUpdatedAt = mountDescUpdatedAt.UpdateDefault.(func() int64)
 	nodeFields := schema.Node{}.Fields()
 	_ = nodeFields
 	// nodeDescUID is the schema descriptor for uid field.
@@ -28,6 +68,18 @@ func init() {
 	node.DefaultUpdatedAt = nodeDescUpdatedAt.Default.(func() int64)
 	// node.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	node.UpdateDefaultUpdatedAt = nodeDescUpdatedAt.UpdateDefault.(func() int64)
+	portFields := schema.Port{}.Fields()
+	_ = portFields
+	// portDescCreatedAt is the schema descriptor for created_at field.
+	portDescCreatedAt := portFields[3].Descriptor()
+	// port.DefaultCreatedAt holds the default value on creation for the created_at field.
+	port.DefaultCreatedAt = portDescCreatedAt.Default.(func() int64)
+	// portDescUpdatedAt is the schema descriptor for updated_at field.
+	portDescUpdatedAt := portFields[4].Descriptor()
+	// port.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	port.DefaultUpdatedAt = portDescUpdatedAt.Default.(func() int64)
+	// port.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	port.UpdateDefaultUpdatedAt = portDescUpdatedAt.UpdateDefault.(func() int64)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescUID is the schema descriptor for uid field.

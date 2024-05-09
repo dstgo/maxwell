@@ -9,6 +9,42 @@ import (
 	"github.com/dstgo/maxwell/ent"
 )
 
+// The ContainerFunc type is an adapter to allow the use of ordinary
+// function as Container mutator.
+type ContainerFunc func(context.Context, *ent.ContainerMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContainerFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContainerMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContainerMutation", m)
+}
+
+// The JobFunc type is an adapter to allow the use of ordinary
+// function as Job mutator.
+type JobFunc func(context.Context, *ent.JobMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f JobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.JobMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.JobMutation", m)
+}
+
+// The MountFunc type is an adapter to allow the use of ordinary
+// function as Mount mutator.
+type MountFunc func(context.Context, *ent.MountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MountMutation", m)
+}
+
 // The NodeFunc type is an adapter to allow the use of ordinary
 // function as Node mutator.
 type NodeFunc func(context.Context, *ent.NodeMutation) (ent.Value, error)
@@ -19,6 +55,18 @@ func (f NodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NodeMutation", m)
+}
+
+// The PortFunc type is an adapter to allow the use of ordinary
+// function as Port mutator.
+type PortFunc func(context.Context, *ent.PortMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PortFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PortMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PortMutation", m)
 }
 
 // The UserFunc type is an adapter to allow the use of ordinary

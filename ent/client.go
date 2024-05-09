@@ -14,7 +14,12 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/dstgo/maxwell/ent/container"
+	"github.com/dstgo/maxwell/ent/job"
+	"github.com/dstgo/maxwell/ent/mount"
 	"github.com/dstgo/maxwell/ent/node"
+	"github.com/dstgo/maxwell/ent/port"
 	"github.com/dstgo/maxwell/ent/user"
 )
 
@@ -23,8 +28,16 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Container is the client for interacting with the Container builders.
+	Container *ContainerClient
+	// Job is the client for interacting with the Job builders.
+	Job *JobClient
+	// Mount is the client for interacting with the Mount builders.
+	Mount *MountClient
 	// Node is the client for interacting with the Node builders.
 	Node *NodeClient
+	// Port is the client for interacting with the Port builders.
+	Port *PortClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -38,7 +51,11 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Container = NewContainerClient(c.config)
+	c.Job = NewJobClient(c.config)
+	c.Mount = NewMountClient(c.config)
 	c.Node = NewNodeClient(c.config)
+	c.Port = NewPortClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -130,10 +147,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Node:   NewNodeClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:       ctx,
+		config:    cfg,
+		Container: NewContainerClient(cfg),
+		Job:       NewJobClient(cfg),
+		Mount:     NewMountClient(cfg),
+		Node:      NewNodeClient(cfg),
+		Port:      NewPortClient(cfg),
+		User:      NewUserClient(cfg),
 	}, nil
 }
 
@@ -151,17 +172,21 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Node:   NewNodeClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:       ctx,
+		config:    cfg,
+		Container: NewContainerClient(cfg),
+		Job:       NewJobClient(cfg),
+		Mount:     NewMountClient(cfg),
+		Node:      NewNodeClient(cfg),
+		Port:      NewPortClient(cfg),
+		User:      NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Node.
+//		Container.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -183,26 +208,551 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Node.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Container, c.Job, c.Mount, c.Node, c.Port, c.User,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Node.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Container, c.Job, c.Mount, c.Node, c.Port, c.User,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *ContainerMutation:
+		return c.Container.mutate(ctx, m)
+	case *JobMutation:
+		return c.Job.mutate(ctx, m)
+	case *MountMutation:
+		return c.Mount.mutate(ctx, m)
 	case *NodeMutation:
 		return c.Node.mutate(ctx, m)
+	case *PortMutation:
+		return c.Port.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// ContainerClient is a client for the Container schema.
+type ContainerClient struct {
+	config
+}
+
+// NewContainerClient returns a client for the Container from the given config.
+func NewContainerClient(c config) *ContainerClient {
+	return &ContainerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `container.Hooks(f(g(h())))`.
+func (c *ContainerClient) Use(hooks ...Hook) {
+	c.hooks.Container = append(c.hooks.Container, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `container.Intercept(f(g(h())))`.
+func (c *ContainerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Container = append(c.inters.Container, interceptors...)
+}
+
+// Create returns a builder for creating a Container entity.
+func (c *ContainerClient) Create() *ContainerCreate {
+	mutation := newContainerMutation(c.config, OpCreate)
+	return &ContainerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Container entities.
+func (c *ContainerClient) CreateBulk(builders ...*ContainerCreate) *ContainerCreateBulk {
+	return &ContainerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContainerClient) MapCreateBulk(slice any, setFunc func(*ContainerCreate, int)) *ContainerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContainerCreateBulk{err: fmt.Errorf("calling to ContainerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContainerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContainerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Container.
+func (c *ContainerClient) Update() *ContainerUpdate {
+	mutation := newContainerMutation(c.config, OpUpdate)
+	return &ContainerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContainerClient) UpdateOne(co *Container) *ContainerUpdateOne {
+	mutation := newContainerMutation(c.config, OpUpdateOne, withContainer(co))
+	return &ContainerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContainerClient) UpdateOneID(id int) *ContainerUpdateOne {
+	mutation := newContainerMutation(c.config, OpUpdateOne, withContainerID(id))
+	return &ContainerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Container.
+func (c *ContainerClient) Delete() *ContainerDelete {
+	mutation := newContainerMutation(c.config, OpDelete)
+	return &ContainerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContainerClient) DeleteOne(co *Container) *ContainerDeleteOne {
+	return c.DeleteOneID(co.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContainerClient) DeleteOneID(id int) *ContainerDeleteOne {
+	builder := c.Delete().Where(container.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContainerDeleteOne{builder}
+}
+
+// Query returns a query builder for Container.
+func (c *ContainerClient) Query() *ContainerQuery {
+	return &ContainerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContainer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Container entity by its id.
+func (c *ContainerClient) Get(ctx context.Context, id int) (*Container, error) {
+	return c.Query().Where(container.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContainerClient) GetX(ctx context.Context, id int) *Container {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Container.
+func (c *ContainerClient) QueryOwner(co *Container) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := co.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(container.Table, container.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, container.OwnerTable, container.OwnerPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(co.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNode queries the node edge of a Container.
+func (c *ContainerClient) QueryNode(co *Container) *NodeQuery {
+	query := (&NodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := co.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(container.Table, container.FieldID, id),
+			sqlgraph.To(node.Table, node.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, container.NodeTable, container.NodePrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(co.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMounts queries the mounts edge of a Container.
+func (c *ContainerClient) QueryMounts(co *Container) *MountQuery {
+	query := (&MountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := co.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(container.Table, container.FieldID, id),
+			sqlgraph.To(mount.Table, mount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, container.MountsTable, container.MountsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(co.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPorts queries the ports edge of a Container.
+func (c *ContainerClient) QueryPorts(co *Container) *PortQuery {
+	query := (&PortClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := co.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(container.Table, container.FieldID, id),
+			sqlgraph.To(port.Table, port.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, container.PortsTable, container.PortsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(co.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryJobs queries the jobs edge of a Container.
+func (c *ContainerClient) QueryJobs(co *Container) *JobQuery {
+	query := (&JobClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := co.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(container.Table, container.FieldID, id),
+			sqlgraph.To(job.Table, job.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, container.JobsTable, container.JobsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(co.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ContainerClient) Hooks() []Hook {
+	return c.hooks.Container
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContainerClient) Interceptors() []Interceptor {
+	return c.inters.Container
+}
+
+func (c *ContainerClient) mutate(ctx context.Context, m *ContainerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContainerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContainerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContainerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContainerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Container mutation op: %q", m.Op())
+	}
+}
+
+// JobClient is a client for the Job schema.
+type JobClient struct {
+	config
+}
+
+// NewJobClient returns a client for the Job from the given config.
+func NewJobClient(c config) *JobClient {
+	return &JobClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `job.Hooks(f(g(h())))`.
+func (c *JobClient) Use(hooks ...Hook) {
+	c.hooks.Job = append(c.hooks.Job, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `job.Intercept(f(g(h())))`.
+func (c *JobClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Job = append(c.inters.Job, interceptors...)
+}
+
+// Create returns a builder for creating a Job entity.
+func (c *JobClient) Create() *JobCreate {
+	mutation := newJobMutation(c.config, OpCreate)
+	return &JobCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Job entities.
+func (c *JobClient) CreateBulk(builders ...*JobCreate) *JobCreateBulk {
+	return &JobCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *JobClient) MapCreateBulk(slice any, setFunc func(*JobCreate, int)) *JobCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &JobCreateBulk{err: fmt.Errorf("calling to JobClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*JobCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &JobCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Job.
+func (c *JobClient) Update() *JobUpdate {
+	mutation := newJobMutation(c.config, OpUpdate)
+	return &JobUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *JobClient) UpdateOne(j *Job) *JobUpdateOne {
+	mutation := newJobMutation(c.config, OpUpdateOne, withJob(j))
+	return &JobUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *JobClient) UpdateOneID(id int) *JobUpdateOne {
+	mutation := newJobMutation(c.config, OpUpdateOne, withJobID(id))
+	return &JobUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Job.
+func (c *JobClient) Delete() *JobDelete {
+	mutation := newJobMutation(c.config, OpDelete)
+	return &JobDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *JobClient) DeleteOne(j *Job) *JobDeleteOne {
+	return c.DeleteOneID(j.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *JobClient) DeleteOneID(id int) *JobDeleteOne {
+	builder := c.Delete().Where(job.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &JobDeleteOne{builder}
+}
+
+// Query returns a query builder for Job.
+func (c *JobClient) Query() *JobQuery {
+	return &JobQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeJob},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Job entity by its id.
+func (c *JobClient) Get(ctx context.Context, id int) (*Job, error) {
+	return c.Query().Where(job.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *JobClient) GetX(ctx context.Context, id int) *Job {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Job.
+func (c *JobClient) QueryOwner(j *Job) *ContainerQuery {
+	query := (&ContainerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := j.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(job.Table, job.FieldID, id),
+			sqlgraph.To(container.Table, container.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, job.OwnerTable, job.OwnerPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(j.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *JobClient) Hooks() []Hook {
+	return c.hooks.Job
+}
+
+// Interceptors returns the client interceptors.
+func (c *JobClient) Interceptors() []Interceptor {
+	return c.inters.Job
+}
+
+func (c *JobClient) mutate(ctx context.Context, m *JobMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&JobCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&JobUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&JobUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&JobDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Job mutation op: %q", m.Op())
+	}
+}
+
+// MountClient is a client for the Mount schema.
+type MountClient struct {
+	config
+}
+
+// NewMountClient returns a client for the Mount from the given config.
+func NewMountClient(c config) *MountClient {
+	return &MountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `mount.Hooks(f(g(h())))`.
+func (c *MountClient) Use(hooks ...Hook) {
+	c.hooks.Mount = append(c.hooks.Mount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `mount.Intercept(f(g(h())))`.
+func (c *MountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Mount = append(c.inters.Mount, interceptors...)
+}
+
+// Create returns a builder for creating a Mount entity.
+func (c *MountClient) Create() *MountCreate {
+	mutation := newMountMutation(c.config, OpCreate)
+	return &MountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Mount entities.
+func (c *MountClient) CreateBulk(builders ...*MountCreate) *MountCreateBulk {
+	return &MountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MountClient) MapCreateBulk(slice any, setFunc func(*MountCreate, int)) *MountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MountCreateBulk{err: fmt.Errorf("calling to MountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Mount.
+func (c *MountClient) Update() *MountUpdate {
+	mutation := newMountMutation(c.config, OpUpdate)
+	return &MountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MountClient) UpdateOne(m *Mount) *MountUpdateOne {
+	mutation := newMountMutation(c.config, OpUpdateOne, withMount(m))
+	return &MountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MountClient) UpdateOneID(id int) *MountUpdateOne {
+	mutation := newMountMutation(c.config, OpUpdateOne, withMountID(id))
+	return &MountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Mount.
+func (c *MountClient) Delete() *MountDelete {
+	mutation := newMountMutation(c.config, OpDelete)
+	return &MountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MountClient) DeleteOne(m *Mount) *MountDeleteOne {
+	return c.DeleteOneID(m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MountClient) DeleteOneID(id int) *MountDeleteOne {
+	builder := c.Delete().Where(mount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MountDeleteOne{builder}
+}
+
+// Query returns a query builder for Mount.
+func (c *MountClient) Query() *MountQuery {
+	return &MountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Mount entity by its id.
+func (c *MountClient) Get(ctx context.Context, id int) (*Mount, error) {
+	return c.Query().Where(mount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MountClient) GetX(ctx context.Context, id int) *Mount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Mount.
+func (c *MountClient) QueryOwner(m *Mount) *ContainerQuery {
+	query := (&ContainerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(mount.Table, mount.FieldID, id),
+			sqlgraph.To(container.Table, container.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, mount.OwnerTable, mount.OwnerPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *MountClient) Hooks() []Hook {
+	return c.hooks.Mount
+}
+
+// Interceptors returns the client interceptors.
+func (c *MountClient) Interceptors() []Interceptor {
+	return c.inters.Mount
+}
+
+func (c *MountClient) mutate(ctx context.Context, m *MountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Mount mutation op: %q", m.Op())
 	}
 }
 
@@ -314,6 +864,22 @@ func (c *NodeClient) GetX(ctx context.Context, id int) *Node {
 	return obj
 }
 
+// QueryContainers queries the containers edge of a Node.
+func (c *NodeClient) QueryContainers(n *Node) *ContainerQuery {
+	query := (&ContainerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := n.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(node.Table, node.FieldID, id),
+			sqlgraph.To(container.Table, container.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, node.ContainersTable, node.ContainersPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(n.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *NodeClient) Hooks() []Hook {
 	return c.hooks.Node
@@ -336,6 +902,155 @@ func (c *NodeClient) mutate(ctx context.Context, m *NodeMutation) (Value, error)
 		return (&NodeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Node mutation op: %q", m.Op())
+	}
+}
+
+// PortClient is a client for the Port schema.
+type PortClient struct {
+	config
+}
+
+// NewPortClient returns a client for the Port from the given config.
+func NewPortClient(c config) *PortClient {
+	return &PortClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `port.Hooks(f(g(h())))`.
+func (c *PortClient) Use(hooks ...Hook) {
+	c.hooks.Port = append(c.hooks.Port, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `port.Intercept(f(g(h())))`.
+func (c *PortClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Port = append(c.inters.Port, interceptors...)
+}
+
+// Create returns a builder for creating a Port entity.
+func (c *PortClient) Create() *PortCreate {
+	mutation := newPortMutation(c.config, OpCreate)
+	return &PortCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Port entities.
+func (c *PortClient) CreateBulk(builders ...*PortCreate) *PortCreateBulk {
+	return &PortCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PortClient) MapCreateBulk(slice any, setFunc func(*PortCreate, int)) *PortCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PortCreateBulk{err: fmt.Errorf("calling to PortClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PortCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PortCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Port.
+func (c *PortClient) Update() *PortUpdate {
+	mutation := newPortMutation(c.config, OpUpdate)
+	return &PortUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PortClient) UpdateOne(po *Port) *PortUpdateOne {
+	mutation := newPortMutation(c.config, OpUpdateOne, withPort(po))
+	return &PortUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PortClient) UpdateOneID(id int) *PortUpdateOne {
+	mutation := newPortMutation(c.config, OpUpdateOne, withPortID(id))
+	return &PortUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Port.
+func (c *PortClient) Delete() *PortDelete {
+	mutation := newPortMutation(c.config, OpDelete)
+	return &PortDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PortClient) DeleteOne(po *Port) *PortDeleteOne {
+	return c.DeleteOneID(po.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PortClient) DeleteOneID(id int) *PortDeleteOne {
+	builder := c.Delete().Where(port.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PortDeleteOne{builder}
+}
+
+// Query returns a query builder for Port.
+func (c *PortClient) Query() *PortQuery {
+	return &PortQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePort},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Port entity by its id.
+func (c *PortClient) Get(ctx context.Context, id int) (*Port, error) {
+	return c.Query().Where(port.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PortClient) GetX(ctx context.Context, id int) *Port {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOwner queries the owner edge of a Port.
+func (c *PortClient) QueryOwner(po *Port) *ContainerQuery {
+	query := (&ContainerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(port.Table, port.FieldID, id),
+			sqlgraph.To(container.Table, container.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, port.OwnerTable, port.OwnerPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PortClient) Hooks() []Hook {
+	return c.hooks.Port
+}
+
+// Interceptors returns the client interceptors.
+func (c *PortClient) Interceptors() []Interceptor {
+	return c.inters.Port
+}
+
+func (c *PortClient) mutate(ctx context.Context, m *PortMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PortCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PortUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PortUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PortDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Port mutation op: %q", m.Op())
 	}
 }
 
@@ -447,6 +1162,22 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 	return obj
 }
 
+// QueryContainers queries the containers edge of a User.
+func (c *UserClient) QueryContainers(u *User) *ContainerQuery {
+	query := (&ContainerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(container.Table, container.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, user.ContainersTable, user.ContainersPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -475,9 +1206,9 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Node, User []ent.Hook
+		Container, Job, Mount, Node, Port, User []ent.Hook
 	}
 	inters struct {
-		Node, User []ent.Interceptor
+		Container, Job, Mount, Node, Port, User []ent.Interceptor
 	}
 )

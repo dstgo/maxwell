@@ -12,7 +12,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/dstgo/maxwell/ent/container"
+	"github.com/dstgo/maxwell/ent/job"
+	"github.com/dstgo/maxwell/ent/mount"
 	"github.com/dstgo/maxwell/ent/node"
+	"github.com/dstgo/maxwell/ent/port"
 	"github.com/dstgo/maxwell/ent/user"
 )
 
@@ -74,8 +78,12 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			node.Table: node.ValidColumn,
-			user.Table: user.ValidColumn,
+			container.Table: container.ValidColumn,
+			job.Table:       job.ValidColumn,
+			mount.Table:     mount.ValidColumn,
+			node.Table:      node.ValidColumn,
+			port.Table:      port.ValidColumn,
+			user.Table:      user.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

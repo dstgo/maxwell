@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/dstgo/maxwell/ent/container"
 	"github.com/dstgo/maxwell/ent/node"
 )
 
@@ -77,6 +78,21 @@ func (nc *NodeCreate) SetNillableUpdatedAt(i *int64) *NodeCreate {
 		nc.SetUpdatedAt(*i)
 	}
 	return nc
+}
+
+// AddContainerIDs adds the "containers" edge to the Container entity by IDs.
+func (nc *NodeCreate) AddContainerIDs(ids ...int) *NodeCreate {
+	nc.mutation.AddContainerIDs(ids...)
+	return nc
+}
+
+// AddContainers adds the "containers" edges to the Container entity.
+func (nc *NodeCreate) AddContainers(c ...*Container) *NodeCreate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return nc.AddContainerIDs(ids...)
 }
 
 // Mutation returns the NodeMutation object of the builder.
@@ -197,6 +213,22 @@ func (nc *NodeCreate) createSpec() (*Node, *sqlgraph.CreateSpec) {
 	if value, ok := nc.mutation.UpdatedAt(); ok {
 		_spec.SetField(node.FieldUpdatedAt, field.TypeInt64, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := nc.mutation.ContainersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   node.ContainersTable,
+			Columns: node.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

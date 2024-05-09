@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/dstgo/maxwell/ent/container"
 	"github.com/dstgo/maxwell/ent/predicate"
 	"github.com/dstgo/maxwell/ent/user"
 )
@@ -117,9 +118,45 @@ func (uu *UserUpdate) AddUpdatedAt(i int64) *UserUpdate {
 	return uu
 }
 
+// AddContainerIDs adds the "containers" edge to the Container entity by IDs.
+func (uu *UserUpdate) AddContainerIDs(ids ...int) *UserUpdate {
+	uu.mutation.AddContainerIDs(ids...)
+	return uu
+}
+
+// AddContainers adds the "containers" edges to the Container entity.
+func (uu *UserUpdate) AddContainers(c ...*Container) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.AddContainerIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearContainers clears all "containers" edges to the Container entity.
+func (uu *UserUpdate) ClearContainers() *UserUpdate {
+	uu.mutation.ClearContainers()
+	return uu
+}
+
+// RemoveContainerIDs removes the "containers" edge to Container entities by IDs.
+func (uu *UserUpdate) RemoveContainerIDs(ids ...int) *UserUpdate {
+	uu.mutation.RemoveContainerIDs(ids...)
+	return uu
+}
+
+// RemoveContainers removes "containers" edges to Container entities.
+func (uu *UserUpdate) RemoveContainers(c ...*Container) *UserUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.RemoveContainerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -190,6 +227,51 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.AddedUpdatedAt(); ok {
 		_spec.AddField(user.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if uu.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.ContainersTable,
+			Columns: user.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedContainersIDs(); len(nodes) > 0 && !uu.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.ContainersTable,
+			Columns: user.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.ContainersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.ContainersTable,
+			Columns: user.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -301,9 +383,45 @@ func (uuo *UserUpdateOne) AddUpdatedAt(i int64) *UserUpdateOne {
 	return uuo
 }
 
+// AddContainerIDs adds the "containers" edge to the Container entity by IDs.
+func (uuo *UserUpdateOne) AddContainerIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.AddContainerIDs(ids...)
+	return uuo
+}
+
+// AddContainers adds the "containers" edges to the Container entity.
+func (uuo *UserUpdateOne) AddContainers(c ...*Container) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.AddContainerIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearContainers clears all "containers" edges to the Container entity.
+func (uuo *UserUpdateOne) ClearContainers() *UserUpdateOne {
+	uuo.mutation.ClearContainers()
+	return uuo
+}
+
+// RemoveContainerIDs removes the "containers" edge to Container entities by IDs.
+func (uuo *UserUpdateOne) RemoveContainerIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.RemoveContainerIDs(ids...)
+	return uuo
+}
+
+// RemoveContainers removes "containers" edges to Container entities.
+func (uuo *UserUpdateOne) RemoveContainers(c ...*Container) *UserUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.RemoveContainerIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -404,6 +522,51 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.AddedUpdatedAt(); ok {
 		_spec.AddField(user.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if uuo.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.ContainersTable,
+			Columns: user.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedContainersIDs(); len(nodes) > 0 && !uuo.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.ContainersTable,
+			Columns: user.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.ContainersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.ContainersTable,
+			Columns: user.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

@@ -4,6 +4,7 @@ package user
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -23,8 +24,15 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// EdgeContainers holds the string denoting the containers edge name in mutations.
+	EdgeContainers = "containers"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// ContainersTable is the table that holds the containers relation/edge. The primary key declared below.
+	ContainersTable = "user_containers"
+	// ContainersInverseTable is the table name for the Container entity.
+	// It exists in this package in order to avoid circular dependency with the "container" package.
+	ContainersInverseTable = "containers"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -37,6 +45,12 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
+
+var (
+	// ContainersPrimaryKey and ContainersColumn2 are the table columns denoting the
+	// primary key for the containers relation (M2M).
+	ContainersPrimaryKey = []string{"user_id", "container_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -95,4 +109,25 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByContainersCount orders the results by containers count.
+func ByContainersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newContainersStep(), opts...)
+	}
+}
+
+// ByContainers orders the results by containers terms.
+func ByContainers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newContainersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newContainersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ContainersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, ContainersTable, ContainersPrimaryKey...),
+	)
 }

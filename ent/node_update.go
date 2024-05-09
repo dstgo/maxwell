@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/dstgo/maxwell/ent/container"
 	"github.com/dstgo/maxwell/ent/node"
 	"github.com/dstgo/maxwell/ent/predicate"
 )
@@ -117,9 +118,45 @@ func (nu *NodeUpdate) AddUpdatedAt(i int64) *NodeUpdate {
 	return nu
 }
 
+// AddContainerIDs adds the "containers" edge to the Container entity by IDs.
+func (nu *NodeUpdate) AddContainerIDs(ids ...int) *NodeUpdate {
+	nu.mutation.AddContainerIDs(ids...)
+	return nu
+}
+
+// AddContainers adds the "containers" edges to the Container entity.
+func (nu *NodeUpdate) AddContainers(c ...*Container) *NodeUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return nu.AddContainerIDs(ids...)
+}
+
 // Mutation returns the NodeMutation object of the builder.
 func (nu *NodeUpdate) Mutation() *NodeMutation {
 	return nu.mutation
+}
+
+// ClearContainers clears all "containers" edges to the Container entity.
+func (nu *NodeUpdate) ClearContainers() *NodeUpdate {
+	nu.mutation.ClearContainers()
+	return nu
+}
+
+// RemoveContainerIDs removes the "containers" edge to Container entities by IDs.
+func (nu *NodeUpdate) RemoveContainerIDs(ids ...int) *NodeUpdate {
+	nu.mutation.RemoveContainerIDs(ids...)
+	return nu
+}
+
+// RemoveContainers removes "containers" edges to Container entities.
+func (nu *NodeUpdate) RemoveContainers(c ...*Container) *NodeUpdate {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return nu.RemoveContainerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -190,6 +227,51 @@ func (nu *NodeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := nu.mutation.AddedUpdatedAt(); ok {
 		_spec.AddField(node.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if nu.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   node.ContainersTable,
+			Columns: node.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nu.mutation.RemovedContainersIDs(); len(nodes) > 0 && !nu.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   node.ContainersTable,
+			Columns: node.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nu.mutation.ContainersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   node.ContainersTable,
+			Columns: node.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, nu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -301,9 +383,45 @@ func (nuo *NodeUpdateOne) AddUpdatedAt(i int64) *NodeUpdateOne {
 	return nuo
 }
 
+// AddContainerIDs adds the "containers" edge to the Container entity by IDs.
+func (nuo *NodeUpdateOne) AddContainerIDs(ids ...int) *NodeUpdateOne {
+	nuo.mutation.AddContainerIDs(ids...)
+	return nuo
+}
+
+// AddContainers adds the "containers" edges to the Container entity.
+func (nuo *NodeUpdateOne) AddContainers(c ...*Container) *NodeUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return nuo.AddContainerIDs(ids...)
+}
+
 // Mutation returns the NodeMutation object of the builder.
 func (nuo *NodeUpdateOne) Mutation() *NodeMutation {
 	return nuo.mutation
+}
+
+// ClearContainers clears all "containers" edges to the Container entity.
+func (nuo *NodeUpdateOne) ClearContainers() *NodeUpdateOne {
+	nuo.mutation.ClearContainers()
+	return nuo
+}
+
+// RemoveContainerIDs removes the "containers" edge to Container entities by IDs.
+func (nuo *NodeUpdateOne) RemoveContainerIDs(ids ...int) *NodeUpdateOne {
+	nuo.mutation.RemoveContainerIDs(ids...)
+	return nuo
+}
+
+// RemoveContainers removes "containers" edges to Container entities.
+func (nuo *NodeUpdateOne) RemoveContainers(c ...*Container) *NodeUpdateOne {
+	ids := make([]int, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return nuo.RemoveContainerIDs(ids...)
 }
 
 // Where appends a list predicates to the NodeUpdate builder.
@@ -404,6 +522,51 @@ func (nuo *NodeUpdateOne) sqlSave(ctx context.Context) (_node *Node, err error) 
 	}
 	if value, ok := nuo.mutation.AddedUpdatedAt(); ok {
 		_spec.AddField(node.FieldUpdatedAt, field.TypeInt64, value)
+	}
+	if nuo.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   node.ContainersTable,
+			Columns: node.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nuo.mutation.RemovedContainersIDs(); len(nodes) > 0 && !nuo.mutation.ContainersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   node.ContainersTable,
+			Columns: node.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nuo.mutation.ContainersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   node.ContainersTable,
+			Columns: node.ContainersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(container.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Node{config: nuo.config}
 	_spec.Assign = _node.assignValues

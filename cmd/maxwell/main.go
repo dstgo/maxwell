@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dstgo/maxwell/internal/app"
-	"github.com/dstgo/maxwell/internal/app/conf"
 	"github.com/dstgo/maxwell/pkg/cfgx"
+	app "github.com/dstgo/maxwell/server"
+	"github.com/dstgo/maxwell/server/conf"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
@@ -20,26 +20,27 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:          "maxwell [commands] [-flags]",
-	Short:        "maxwell is a opensource personal don‘t starve together web panel",
-	Long:         "maxwell is a opensource personal don‘t starve together web panel",
+	Short:        "maxwell is the web server of wendy panel, responsible for managing nodes that from any machine.",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// load config file
-		var appconf conf.AppConf
-		if err := cfgx.LoadConfigAndMapTo(ConfigFile, &appconf); err != nil {
+		appConf := conf.App{
+			Version:   Version,
+			BuildTime: BuildTime,
+		}
+
+		if err := cfgx.LoadConfigAndMapTo(ConfigFile, &appConf); err != nil {
 			return err
 		}
-		appconf.Version = Version
-		appconf.BuildTime = BuildTime
 
 		// print banner
 		if err := app.PrintBanner(os.Stderr); err != nil {
 			return err
 		}
 
-		appconf.Log.Prompt = "[maxwell]"
+		appConf.Log.Prompt = "[maxwell]"
 		// initialize app logger
-		logger, err := app.NewLogger(appconf.Log)
+		logger, err := app.NewLogger(appConf.Log)
 		if err != nil {
 			return err
 		}
@@ -47,13 +48,13 @@ var rootCmd = &cobra.Command{
 
 		// set it to the default logger
 		slog.SetDefault(logger.Slog())
-		slog.Info(fmt.Sprintf("logging in level: %s", strings.ToLower(appconf.Log.Level.String())))
+		slog.Info(fmt.Sprintf("logging in level: %s", strings.ToLower(appConf.Log.Level.String())))
 
 		// this is the root context for the whole program
 		rootCtx := context.Background()
 
 		// initialize app
-		server, err := app.NewApp(rootCtx, &appconf)
+		server, err := app.NewApp(rootCtx, &appConf)
 		if err != nil {
 			return err
 		}
@@ -64,7 +65,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&ConfigFile, "config", "f", "conf.yaml", "app configuration file")
+	rootCmd.PersistentFlags().StringVarP(&ConfigFile, "config", "f", "conf.yaml", "server configuration file")
 }
 
 func main() {

@@ -2,6 +2,9 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/dstgo/maxwell/pkg/ids"
 	"github.com/dstgo/maxwell/pkg/ts"
@@ -12,6 +15,13 @@ type User struct {
 	ent.Schema
 }
 
+func (User) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.WithComments(true),
+		schema.Comment("user info table"),
+	}
+}
+
 // Fields of the User.
 func (User) Fields() []ent.Field {
 	return []ent.Field{
@@ -19,12 +29,14 @@ func (User) Fields() []ent.Field {
 		field.String("username").Unique(),
 		field.String("email").Unique(),
 		field.String("password"),
-		field.Int64("created_at").DefaultFunc(ts.Ts),
-		field.Int64("updated_at").DefaultFunc(ts.Ts).UpdateDefault(ts.Ts),
+		field.Int64("created_at").DefaultFunc(ts.UnixMicro),
+		field.Int64("updated_at").DefaultFunc(ts.UnixMicro).UpdateDefault(ts.UnixMicro),
 	}
 }
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("containers", Container.Type),
+	}
 }

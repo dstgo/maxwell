@@ -4,6 +4,7 @@ package user
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/dstgo/maxwell/ent/predicate"
 )
 
@@ -420,6 +421,29 @@ func UpdatedAtLT(v int64) predicate.User {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v int64) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// HasContainers applies the HasEdge predicate on the "containers" edge.
+func HasContainers() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, ContainersTable, ContainersPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasContainersWith applies the HasEdge predicate on the "containers" edge with a given conditions (other predicates).
+func HasContainersWith(preds ...predicate.Container) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newContainersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

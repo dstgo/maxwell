@@ -4,12 +4,14 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/dstgo/maxwell/ent/container"
 	"github.com/dstgo/maxwell/ent/node"
 	"github.com/dstgo/maxwell/ent/predicate"
 )
@@ -17,10 +19,11 @@ import (
 // NodeQuery is the builder for querying Node entities.
 type NodeQuery struct {
 	config
-	ctx        *QueryContext
-	order      []node.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Node
+	ctx            *QueryContext
+	order          []node.OrderOption
+	inters         []Interceptor
+	predicates     []predicate.Node
+	withContainers *ContainerQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -55,6 +58,28 @@ func (nq *NodeQuery) Unique(unique bool) *NodeQuery {
 func (nq *NodeQuery) Order(o ...node.OrderOption) *NodeQuery {
 	nq.order = append(nq.order, o...)
 	return nq
+}
+
+// QueryContainers chains the current query on the "containers" edge.
+func (nq *NodeQuery) QueryContainers() *ContainerQuery {
+	query := (&ContainerClient{config: nq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := nq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := nq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(node.Table, node.FieldID, selector),
+			sqlgraph.To(container.Table, container.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, node.ContainersTable, node.ContainersPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(nq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Node entity from the query.
@@ -244,15 +269,27 @@ func (nq *NodeQuery) Clone() *NodeQuery {
 		return nil
 	}
 	return &NodeQuery{
-		config:     nq.config,
-		ctx:        nq.ctx.Clone(),
-		order:      append([]node.OrderOption{}, nq.order...),
-		inters:     append([]Interceptor{}, nq.inters...),
-		predicates: append([]predicate.Node{}, nq.predicates...),
+		config:         nq.config,
+		ctx:            nq.ctx.Clone(),
+		order:          append([]node.OrderOption{}, nq.order...),
+		inters:         append([]Interceptor{}, nq.inters...),
+		predicates:     append([]predicate.Node{}, nq.predicates...),
+		withContainers: nq.withContainers.Clone(),
 		// clone intermediate query.
 		sql:  nq.sql.Clone(),
 		path: nq.path,
 	}
+}
+
+// WithContainers tells the query-builder to eager-load the nodes that are connected to
+// the "containers" edge. The optional arguments are used to configure the query builder of the edge.
+func (nq *NodeQuery) WithContainers(opts ...func(*ContainerQuery)) *NodeQuery {
+	query := (&ContainerClient{config: nq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	nq.withContainers = query
+	return nq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -331,8 +368,11 @@ func (nq *NodeQuery) prepareQuery(ctx context.Context) error {
 
 func (nq *NodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Node, error) {
 	var (
-		nodes = []*Node{}
-		_spec = nq.querySpec()
+		nodes       = []*Node{}
+		_spec       = nq.querySpec()
+		loadedTypes = [1]bool{
+			nq.withContainers != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Node).scanValues(nil, columns)
@@ -340,6 +380,7 @@ func (nq *NodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Node, e
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Node{config: nq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -351,7 +392,76 @@ func (nq *NodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Node, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := nq.withContainers; query != nil {
+		if err := nq.loadContainers(ctx, query, nodes,
+			func(n *Node) { n.Edges.Containers = []*Container{} },
+			func(n *Node, e *Container) { n.Edges.Containers = append(n.Edges.Containers, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (nq *NodeQuery) loadContainers(ctx context.Context, query *ContainerQuery, nodes []*Node, init func(*Node), assign func(*Node, *Container)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Node)
+	nids := make(map[int]map[*Node]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(node.ContainersTable)
+		s.Join(joinT).On(s.C(container.FieldID), joinT.C(node.ContainersPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(node.ContainersPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(node.ContainersPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Node]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Container](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "containers" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
 }
 
 func (nq *NodeQuery) sqlCount(ctx context.Context) (int, error) {

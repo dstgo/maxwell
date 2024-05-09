@@ -6,8 +6,20 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Container is the predicate function for container builders.
+type Container func(*sql.Selector)
+
+// Job is the predicate function for job builders.
+type Job func(*sql.Selector)
+
+// Mount is the predicate function for mount builders.
+type Mount func(*sql.Selector)
+
 // Node is the predicate function for node builders.
 type Node func(*sql.Selector)
+
+// Port is the predicate function for port builders.
+type Port func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

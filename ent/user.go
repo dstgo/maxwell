@@ -11,7 +11,7 @@ import (
 	"github.com/dstgo/maxwell/ent/user"
 )
 
-// User is the model entity for the User schema.
+// user info table
 type User struct {
 	config `json:"-"`
 	// ID of the ent.
@@ -27,8 +27,29 @@ type User struct {
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt int64 `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    int64 `json:"updated_at,omitempty"`
+	UpdatedAt int64 `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges        UserEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Containers holds the value of the containers edge.
+	Containers []*Container `json:"containers,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// ContainersOrErr returns the Containers value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ContainersOrErr() ([]*Container, error) {
+	if e.loadedTypes[0] {
+		return e.Containers, nil
+	}
+	return nil, &NotLoadedError{edge: "containers"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -108,6 +129,11 @@ func (u *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
+}
+
+// QueryContainers queries the "containers" edge of the User entity.
+func (u *User) QueryContainers() *ContainerQuery {
+	return NewUserClient(u.config).QueryContainers(u)
 }
 
 // Update returns a builder for updating this User.
